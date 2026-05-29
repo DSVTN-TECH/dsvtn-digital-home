@@ -1,5 +1,15 @@
 ﻿import { Module } from '@nestjs/common'
+import { ActivitiesModule } from '../activities/activities.module'
+import { ASSIGNMENTS_REPOSITORY, MatchingService } from './matching.service'
+import { MatchingController } from './matching.controller'
+import { PrismaAssignmentsRepository } from './prisma-assignments.repository'
 
-@Module({})
+@Module({
+  imports: [ActivitiesModule],
+  controllers: [MatchingController],
+  providers: [
+    MatchingService,
+    { provide: ASSIGNMENTS_REPOSITORY, useClass: PrismaAssignmentsRepository },
+  ],
+})
 export class MatchingModule {}
-
