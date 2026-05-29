@@ -1,0 +1,6 @@
+﻿'use client'
+// TODO: TASK-012 — add role guard
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return <div>{children}</div>
+}
+

@@ -1,0 +1,250 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  MEMBER
+  LOGISTIC
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ActivityStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  MATCHED
+  COMPLETED
+}
+
+enum RegistrationStatus {
+  SUBMITTED
+  CANCELLED
+}
+
+enum AssignmentSource {
+  MATCHER
+  MANUAL
+}
+
+enum AssignmentStatus {
+  PROPOSED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT_REVIEW
+  CONFIRMED
+  REJECTED
+  DELIVERED
+  CANCELLED
+}
+
+// ─── Models ───────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(uuid())
+  fullName     String     @map("full_name")
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  role         Role
+  fairnessScore Int       @default(0) @map("fairness_score")
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  volunteerApplicationsReviewed VolunteerApplication[] @relation("ReviewedBy")
+  articles     Article[]
+  registrations ActivityRegistration[]
+  assignments  Assignment[]
+
+  @@map("users")
+}
+
+model VolunteerApplication {
+  id          String            @id @default(uuid())
+  fullName    String            @map("full_name")
+  email       String
+  phone       String
+  studentId   String?           @map("student_id")
+  note        String?
+  status      ApplicationStatus @default(PENDING)
+  reviewedById String?          @map("reviewed_by")
+  reviewedAt  DateTime?         @map("reviewed_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  reviewedBy  User?             @relation("ReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([status], name: "idx_volunteer_status")
+  @@map("volunteer_applications")
+}
+
+model Article {
+  id        String        @id @default(uuid())
+  title     String
+  slug      String        @unique
+  content   String
+  status    ArticleStatus @default(DRAFT)
+  authorId  String        @map("author_id")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  author    User          @relation(fields: [authorId], references: [id])
+
+  @@index([status], name: "idx_articles_status")
+  @@map("articles")
+}
+
+model Activity {
+  id          String         @id @default(uuid())
+  title       String
+  description String?
+  startTime   DateTime       @map("start_time")
+  endTime     DateTime       @map("end_time")
+  status      ActivityStatus @default(DRAFT)
+  createdById String         @map("created_by")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  tasks       Task[]
+  registrations ActivityRegistration[]
+  assignments Assignment[]
+
+  @@map("activities")
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  activityId  String   @map("activity_id")
+  name        String
+  description String?
+  slotCount   Int      @map("slot_count")
+  priority    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  activity    Activity @relation(fields: [activityId], references: [id])
+  preferences TaskPreference[]
+  assignments Assignment[]
+
+  @@map("tasks")
+}
+
+model ActivityRegistration {
+  id          String             @id @default(uuid())
+  activityId  String             @map("activity_id")
+  userId      String             @map("user_id")
+  status      RegistrationStatus @default(SUBMITTED)
+  submittedAt DateTime           @default(now()) @map("submitted_at")
+
+  activity    Activity           @relation(fields: [activityId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
+  preferences TaskPreference[]
+
+  @@unique([activityId, userId])
+  @@index([activityId, userId], name: "idx_reg_activity_user")
+  @@map("activity_registrations")
+}
+
+model TaskPreference {
+  id             String               @id @default(uuid())
+  registrationId String               @map("registration_id")
+  taskId         String               @map("task_id")
+  score          Int
+
+  registration   ActivityRegistration @relation(fields: [registrationId], references: [id])
+  task           Task                 @relation(fields: [taskId], references: [id])
+
+  @@unique([registrationId, taskId])
+  @@map("task_preferences")
+}
+
+model Assignment {
+  id         String           @id @default(uuid())
+  activityId String           @map("activity_id")
+  taskId     String           @map("task_id")
+  userId     String           @map("user_id")
+  source     AssignmentSource
+  status     AssignmentStatus @default(PROPOSED)
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  activity   Activity         @relation(fields: [activityId], references: [id])
+  task       Task             @relation(fields: [taskId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+
+  @@index([activityId], name: "idx_assignments_activity")
+  @@map("assignments")
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  priceCents  Int           @map("price_cents")
+  imageUrl    String?       @map("image_url")
+  status      ProductStatus @default(ACTIVE)
+
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  customerName     String      @map("customer_name")
+  customerPhone    String      @map("customer_phone")
+  customerAddress  String      @map("customer_address")
+  paymentProofUrl  String      @map("payment_proof_url")
+  status           OrderStatus @default(PENDING_PAYMENT_REVIEW)
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  items            OrderItem[]
+
+  @@index([status], name: "idx_orders_status")
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String  @id @default(uuid())
+  orderId       String  @map("order_id")
+  productId     String  @map("product_id")
+  quantity      Int
+  unitPriceCents Int    @map("unit_price_cents")
+
+  order         Order   @relation(fields: [orderId], references: [id])
+  product       Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}

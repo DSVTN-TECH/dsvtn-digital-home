@@ -1,0 +1,15 @@
+{
+  "name": "dsvtn-digital-home",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "lint:all": "cd backend && npm run lint && cd ../frontend && npm run lint",
+    "format:all": "cd backend && npm run format && cd ../frontend && npm run format",
+    "typecheck:all": "cd backend && npm run typecheck && cd ../frontend && npm run typecheck"
+  },
+  "devDependencies": {
+    "husky": "9.1.7",
+    "lint-staged": "15.3.0"
+  }
+}
