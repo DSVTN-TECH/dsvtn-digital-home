@@ -34,6 +34,14 @@ export interface CreateOrderResult {
   createdAt: string
 }
 
+export interface ProductFormInput {
+  name: string
+  description?: string
+  priceCents: number
+  imageUrl?: string
+  status?: ProductStatus
+}
+
 export type AdminOrder = Order
 
 export const ORDER_STATUSES: OrderStatus[] = [
@@ -54,6 +62,9 @@ export const ALLOWED_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 export interface ShopDataSource {
   listProducts(): Promise<Product[]>
+  listAllProducts(): Promise<Product[]>
+  createProduct(input: ProductFormInput): Promise<Product>
+  updateProduct(id: string, input: Partial<ProductFormInput>): Promise<Product>
   createOrder(input: CreateOrderInput): Promise<CreateOrderResult>
   listAdminOrders(status?: OrderStatus): Promise<AdminOrder[]>
   updateOrderStatus(id: string, status: OrderStatus): Promise<AdminOrder>
@@ -62,6 +73,32 @@ export interface ShopDataSource {
 export class ApiShopDataSource implements ShopDataSource {
   async listProducts(): Promise<Product[]> {
     return apiFetch<Product[]>('/public/products')
+  }
+
+  async listAllProducts(): Promise<Product[]> {
+    return apiFetch<Product[]>('/admin/products')
+  }
+
+  async createProduct(input: ProductFormInput): Promise<Product> {
+    const created = await apiFetch<Product>('/admin/products', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: input.name,
+        description: input.description,
+        priceCents: input.priceCents,
+        imageUrl: input.imageUrl,
+      }),
+    })
+    return input.status && input.status !== created.status
+      ? this.updateProduct(created.id, { status: input.status })
+      : created
+  }
+
+  async updateProduct(id: string, input: Partial<ProductFormInput>): Promise<Product> {
+    return apiFetch<Product>(`/admin/products/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    })
   }
 
   async createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
@@ -90,6 +127,42 @@ const mockOrderStore: AdminOrder[] = [...mockOrders]
 export class MockShopDataSource implements ShopDataSource {
   async listProducts(): Promise<Product[]> {
     return Promise.resolve(mockProductStore.filter((p) => p.status === 'ACTIVE'))
+  }
+
+  async listAllProducts(): Promise<Product[]> {
+    return Promise.resolve([...mockProductStore].sort((a, b) => a.name.localeCompare(b.name)))
+  }
+
+  async createProduct(input: ProductFormInput): Promise<Product> {
+    const now = new Date().toISOString()
+    const product: Product = {
+      id: `mock-product-${Date.now()}`,
+      name: input.name,
+      description: input.description ?? null,
+      priceCents: input.priceCents,
+      imageUrl: input.imageUrl ?? null,
+      status: input.status ?? 'ACTIVE',
+      createdAt: now,
+    }
+    mockProductStore.push(product)
+    return Promise.resolve(product)
+  }
+
+  async updateProduct(id: string, input: Partial<ProductFormInput>): Promise<Product> {
+    const index = mockProductStore.findIndex((product) => product.id === id)
+    if (index < 0) throw new Error('Không tìm thấy sản phẩm')
+    const current = mockProductStore[index]
+    const updated: Product = {
+      ...current,
+      name: input.name ?? current.name,
+      description:
+        input.description !== undefined ? input.description || null : current.description,
+      priceCents: input.priceCents ?? current.priceCents,
+      imageUrl: input.imageUrl !== undefined ? input.imageUrl || null : current.imageUrl,
+      status: input.status ?? current.status,
+    }
+    mockProductStore[index] = updated
+    return Promise.resolve(updated)
   }
 
   async createOrder(input: CreateOrderInput): Promise<CreateOrderResult> {
