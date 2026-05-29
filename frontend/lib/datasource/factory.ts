@@ -10,6 +10,9 @@ import { MockMemberActivitiesDataSource } from './registrations.mock'
 import type { MatchingDataSource } from './matching.datasource'
 import { ApiMatchingDataSource } from './matching.api'
 import { MockMatchingDataSource } from './matching.mock'
+import type { MemberAssignmentsDataSource } from './assignments.datasource'
+import { ApiMemberAssignmentsDataSource } from './assignments.api'
+import { MockMemberAssignmentsDataSource } from './assignments.mock'
 
 type DataSourceMode = 'mock' | 'api'
 
@@ -19,6 +22,7 @@ let activitiesDataSource: ActivitiesDataSource | null = null
 let volunteerDataSource: VolunteerDataSource | null = null
 let memberActivitiesDataSource: MemberActivitiesDataSource | null = null
 let matchingDataSource: MatchingDataSource | null = null
+let memberAssignmentsDataSource: MemberAssignmentsDataSource | null = null
 
 export function getActivitiesDataSource(): ActivitiesDataSource {
   if (!activitiesDataSource) {
@@ -49,4 +53,12 @@ export function getMatchingDataSource(): MatchingDataSource {
     matchingDataSource = mode === 'api' ? new ApiMatchingDataSource() : new MockMatchingDataSource()
   }
   return matchingDataSource
+}
+
+export function getMemberAssignmentsDataSource(): MemberAssignmentsDataSource {
+  if (!memberAssignmentsDataSource) {
+    memberAssignmentsDataSource =
+      mode === 'api' ? new ApiMemberAssignmentsDataSource() : new MockMemberAssignmentsDataSource()
+  }
+  return memberAssignmentsDataSource
 }
