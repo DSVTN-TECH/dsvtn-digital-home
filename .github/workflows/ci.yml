@@ -40,6 +40,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://dsvtn_test:dsvtn_test@localhost:5432/dsvtn_test
+      DIRECT_URL: postgresql://dsvtn_test:dsvtn_test@localhost:5432/dsvtn_test
       JWT_SECRET: ci-test-secret-that-is-at-least-32-characters-long
       JWT_EXPIRES_IN: 7d
       NODE_ENV: test
