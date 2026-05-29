@@ -91,3 +91,82 @@ describe('Activities (e2e)', () => {
     expect(res.body.some((a: { id: string }) => a.id === activityId)).toBe(false)
   })
 })
+
+describe('Tasks (e2e)', () => {
+  let app: INestApplication
+  let prisma: PrismaService
+  let adminToken: string
+  let activityId: string
+  let taskId: string
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
+    app = moduleRef.createNestApplication()
+    app.setGlobalPrefix('api')
+    app.useGlobalFilters(new AllExceptionsFilter())
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+    await app.init()
+    prisma = app.get(PrismaService)
+
+    const login = await request(app.getHttpServer())
+      .post('/api/auth/login').send({ email: 'admin@dsvtn.vn', password: 'changeme' }).expect(200)
+    adminToken = login.body.accessToken
+
+    const act = await request(app.getHttpServer())
+      .post('/api/admin/activities').set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: 'Task E2E Activity', startTime: '2026-08-01T08:00:00Z', endTime: '2026-08-01T17:00:00Z' })
+      .expect(201)
+    activityId = act.body.id
+  })
+
+  afterAll(async () => {
+    if (taskId) await prisma.task.deleteMany({ where: { id: taskId } })
+    if (activityId) await prisma.activity.deleteMany({ where: { id: activityId } })
+    await app.close()
+  })
+
+  it('create task → 201 with correct activityId', async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/admin/activities/${activityId}/tasks`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Hậu cần', slotCount: 3, priority: 1 })
+      .expect(201)
+    expect(res.body.activityId).toBe(activityId)
+    expect(res.body.slotCount).toBe(3)
+    taskId = res.body.id
+  })
+
+  it('list tasks for activity', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/admin/activities/${activityId}/tasks`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+    expect(res.body.some((t: { id: string }) => t.id === taskId)).toBe(true)
+  })
+
+  it('slotCount < 0 → 400', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/admin/activities/${activityId}/tasks`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Bad', slotCount: -1 })
+      .expect(400)
+  })
+
+  it('create task for non-existent activity → 404', async () => {
+    await request(app.getHttpServer())
+      .post('/api/admin/activities/00000000-0000-0000-0000-000000000000/tasks')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'X', slotCount: 1 })
+      .expect(404)
+  })
+
+  it('update task slotCount + priority', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/admin/tasks/${taskId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ slotCount: 5, priority: 2 })
+      .expect(200)
+    expect(res.body.slotCount).toBe(5)
+    expect(res.body.priority).toBe(2)
+  })
+})
