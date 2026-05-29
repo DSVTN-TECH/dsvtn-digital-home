@@ -7,6 +7,9 @@ import { MockVolunteerDataSource } from './volunteer.mock'
 import type { MemberActivitiesDataSource } from './registrations.datasource'
 import { ApiMemberActivitiesDataSource } from './registrations.api'
 import { MockMemberActivitiesDataSource } from './registrations.mock'
+import type { MatchingDataSource } from './matching.datasource'
+import { ApiMatchingDataSource } from './matching.api'
+import { MockMatchingDataSource } from './matching.mock'
 
 type DataSourceMode = 'mock' | 'api'
 
@@ -15,6 +18,7 @@ const mode: DataSourceMode = (process.env.NEXT_PUBLIC_DATA_SOURCE as DataSourceM
 let activitiesDataSource: ActivitiesDataSource | null = null
 let volunteerDataSource: VolunteerDataSource | null = null
 let memberActivitiesDataSource: MemberActivitiesDataSource | null = null
+let matchingDataSource: MatchingDataSource | null = null
 
 export function getActivitiesDataSource(): ActivitiesDataSource {
   if (!activitiesDataSource) {
@@ -38,4 +42,11 @@ export function getMemberActivitiesDataSource(): MemberActivitiesDataSource {
       mode === 'api' ? new ApiMemberActivitiesDataSource() : new MockMemberActivitiesDataSource()
   }
   return memberActivitiesDataSource
+}
+
+export function getMatchingDataSource(): MatchingDataSource {
+  if (!matchingDataSource) {
+    matchingDataSource = mode === 'api' ? new ApiMatchingDataSource() : new MockMatchingDataSource()
+  }
+  return matchingDataSource
 }
