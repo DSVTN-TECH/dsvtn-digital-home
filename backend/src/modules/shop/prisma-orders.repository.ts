@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { Order } from '@prisma/client'
+import { EmailStatus, Order } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CreateOrderData, OrdersRepository, OrderWithItems } from './orders.repository'
 
@@ -35,5 +35,9 @@ export class PrismaOrdersRepository extends OrdersRepository {
 
   async updateStatus(id: string, status: Order['status']): Promise<Order> {
     return this.prisma.order.update({ where: { id }, data: { status } })
+  }
+
+  async updateEmailStatus(id: string, status: EmailStatus): Promise<Order> {
+    return this.prisma.order.update({ where: { id }, data: { emailStatus: status } })
   }
 }

@@ -1,13 +1,15 @@
-﻿import { Module } from '@nestjs/common'
+import { Module } from '@nestjs/common'
+import { EmailModule } from '../../common/email'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
-import { PrismaProductsRepository } from './prisma-products.repository'
-import { PrismaOrdersRepository } from './prisma-orders.repository'
-import { ProductsController } from './products.controller'
 import { OrdersController } from './orders.controller'
-import { ProductsService } from './products.service'
 import { OrdersService } from './orders.service'
+import { PrismaOrdersRepository } from './prisma-orders.repository'
+import { PrismaProductsRepository } from './prisma-products.repository'
+import { ProductsController } from './products.controller'
+import { ProductsService } from './products.service'
 
 @Module({
+  imports: [EmailModule],
   controllers: [ProductsController, OrdersController],
   providers: [
     ProductsService,

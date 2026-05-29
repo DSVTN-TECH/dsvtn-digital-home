@@ -1,5 +1,6 @@
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
+import { EMAIL_PROVIDER, EmailProvider } from '../../common/email'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
 import { OrdersService, isAllowedOrderTransition } from './orders.service'
 
@@ -18,6 +19,7 @@ const baseOrder = {
   customerAddress: 'HCM',
   paymentProofUrl: 'https://example.com',
   status: 'PENDING_PAYMENT_REVIEW' as const,
+  emailStatus: 'NOT_CONFIGURED' as const,
   createdAt: new Date(),
   items: [],
 }
@@ -30,7 +32,9 @@ describe('OrdersService', () => {
     findAll: jest.Mock
     findById: jest.Mock
     updateStatus: jest.Mock
+    updateEmailStatus: jest.Mock
   }
+  let emailProvider: jest.Mocked<EmailProvider>
 
   beforeEach(async () => {
     productsRepo = { findById: jest.fn() }
@@ -39,13 +43,16 @@ describe('OrdersService', () => {
       findAll: jest.fn(),
       findById: jest.fn(),
       updateStatus: jest.fn(),
+      updateEmailStatus: jest.fn(),
     }
+    emailProvider = { sendConfirmation: jest.fn() }
 
     const module = await Test.createTestingModule({
       providers: [
         OrdersService,
         { provide: PRODUCTS_REPOSITORY, useValue: productsRepo },
         { provide: ORDERS_REPOSITORY, useValue: ordersRepo },
+        { provide: EMAIL_PROVIDER, useValue: emailProvider },
       ],
     }).compile()
     service = module.get(OrdersService)
@@ -54,6 +61,8 @@ describe('OrdersService', () => {
   it('create: creates order with snapshotted price', async () => {
     productsRepo.findById.mockResolvedValue(activeProduct)
     ordersRepo.create.mockResolvedValue(baseOrder)
+    emailProvider.sendConfirmation.mockResolvedValue('NOT_CONFIGURED')
+    ordersRepo.updateEmailStatus.mockResolvedValue(baseOrder)
 
     const result = await service.create({
       customerName: 'A',
@@ -69,6 +78,25 @@ describe('OrdersService', () => {
         items: [{ productId: 'p-1', quantity: 2, unitPriceCents: 150000 }],
       }),
     )
+    expect(ordersRepo.updateEmailStatus).toHaveBeenCalledWith('o-1', 'NOT_CONFIGURED')
+  })
+
+  it('create: email failure does not rollback order', async () => {
+    productsRepo.findById.mockResolvedValue(activeProduct)
+    ordersRepo.create.mockResolvedValue(baseOrder)
+    emailProvider.sendConfirmation.mockRejectedValue(new Error('provider down'))
+    ordersRepo.updateEmailStatus.mockResolvedValue({ ...baseOrder, emailStatus: 'FAILED' })
+
+    const result = await service.create({
+      customerName: 'A',
+      customerPhone: '0912345678',
+      customerAddress: 'HCM',
+      paymentProofUrl: 'https://example.com',
+      items: [{ productId: 'p-1', quantity: 1 }],
+    })
+
+    expect(result.id).toBe(baseOrder.id)
+    expect(ordersRepo.updateEmailStatus).toHaveBeenCalledWith('o-1', 'FAILED')
   })
 
   it('create: throws UnprocessableEntity for INACTIVE product', async () => {

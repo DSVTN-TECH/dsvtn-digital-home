@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { VolunteerApplication } from '@prisma/client'
+import { EmailStatus, VolunteerApplication } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import {
   CreateVolunteerApplicationData,
@@ -32,6 +32,10 @@ export class PrismaVolunteerApplicationsRepository extends VolunteerApplications
 
   async update(id: string, data: ReviewVolunteerApplicationData): Promise<VolunteerApplication> {
     return this.prisma.volunteerApplication.update({ where: { id }, data })
+  }
+
+  async updateEmailStatus(id: string, status: EmailStatus): Promise<VolunteerApplication> {
+    return this.prisma.volunteerApplication.update({ where: { id }, data: { emailStatus: status } })
   }
 
   async delete(id: string): Promise<void> {

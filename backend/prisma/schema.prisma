@@ -74,6 +74,12 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum EmailStatus {
+  NOT_CONFIGURED
+  SENT
+  FAILED
+}
+
 // ─── Models ───────────────────────────────────────────────────
 
 model User {
@@ -104,6 +110,7 @@ model VolunteerApplication {
   studentId    String            @map("student_id")
   note         String?
   status       ApplicationStatus @default(PENDING)
+  emailStatus  EmailStatus       @default(NOT_CONFIGURED) @map("email_status")
   reviewedById String?           @map("reviewed_by")
   reviewedAt   DateTime?         @map("reviewed_at")
   createdAt    DateTime          @default(now()) @map("created_at")
@@ -230,6 +237,7 @@ model Order {
   customerAddress String      @map("customer_address")
   paymentProofUrl String      @map("payment_proof_url")
   status          OrderStatus @default(PENDING_PAYMENT_REVIEW)
+  emailStatus     EmailStatus @default(NOT_CONFIGURED) @map("email_status")
   createdAt       DateTime    @default(now()) @map("created_at")
 
   items OrderItem[]

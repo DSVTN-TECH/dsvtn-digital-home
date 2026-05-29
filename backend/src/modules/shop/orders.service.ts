@@ -1,9 +1,16 @@
-import { Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
-import { Order } from '@prisma/client'
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common'
+import { EmailStatus, Order } from '@prisma/client'
+import { EMAIL_PROVIDER, EmailProvider } from '../../common/email'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
-import { ProductsRepository } from './products.repository'
-import { OrdersRepository } from './orders.repository'
 import { CreateOrderDto } from './dto/create-order.dto'
+import { OrdersRepository } from './orders.repository'
+import { ProductsRepository } from './products.repository'
 
 type OrderStatus = Order['status']
 
@@ -22,9 +29,12 @@ export function isAllowedOrderTransition(from: OrderStatus, to: OrderStatus): bo
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name)
+
   constructor(
     @Inject(ORDERS_REPOSITORY) private readonly orders: OrdersRepository,
     @Inject(PRODUCTS_REPOSITORY) private readonly products: ProductsRepository,
+    @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider,
   ) {}
 
   async create(dto: CreateOrderDto) {
@@ -49,6 +59,8 @@ export class OrdersService {
       items: itemsWithPrice,
     })
 
+    await this.orders.updateEmailStatus(order.id, await this.sendOrderConfirmationEmail())
+
     return { id: order.id, status: order.status, createdAt: order.createdAt }
   }
 
@@ -71,5 +83,20 @@ export class OrdersService {
       )
     }
     return this.orders.updateStatus(id, newStatus)
+  }
+
+  private async sendOrderConfirmationEmail(): Promise<EmailStatus> {
+    try {
+      return await this.emailProvider.sendConfirmation(
+        'order-recipient-not-configured',
+        'ĐSVTN: Đơn hàng đã được ghi nhận',
+        'Đơn hàng gây quỹ của bạn đã được ghi nhận. Đội logistics sẽ kiểm tra minh chứng thanh toán.',
+      )
+    } catch (error) {
+      this.logger.warn(
+        `Order confirmation email failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      )
+      return 'FAILED'
+    }
   }
 }

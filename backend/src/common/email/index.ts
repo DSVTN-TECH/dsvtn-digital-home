@@ -1,0 +1,5 @@
+export { ConsoleLogEmailProvider } from './console-log-email.provider'
+export { EmailModule } from './email.module'
+export type { EmailProvider, EmailSendStatus } from './email.provider'
+export { EMAIL_PROVIDER } from './email.tokens'
+export { ResendEmailProvider } from './resend-email.provider'

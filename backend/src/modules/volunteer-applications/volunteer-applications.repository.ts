@@ -1,4 +1,4 @@
-import { VolunteerApplication } from '@prisma/client'
+import { EmailStatus, VolunteerApplication } from '@prisma/client'
 import { BaseRepository } from '../../common/repository'
 
 export type CreateVolunteerApplicationData = {
@@ -21,4 +21,5 @@ export abstract class VolunteerApplicationsRepository extends BaseRepository<
   ReviewVolunteerApplicationData
 > {
   abstract findByStatus(status?: string): Promise<VolunteerApplication[]>
+  abstract updateEmailStatus(id: string, status: EmailStatus): Promise<VolunteerApplication>
 }
