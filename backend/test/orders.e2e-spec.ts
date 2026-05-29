@@ -7,11 +7,13 @@ import { PrismaService } from '../src/prisma/prisma.service'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
+const MEMBER_EMAIL = `e2e-orders-member-${Date.now()}@dsvtn.vn`
 
 describe('Orders (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
   let adminToken: string
+  let memberToken: string
   let productId: string
   let orderId: string
 
@@ -28,6 +30,13 @@ describe('Orders (e2e)', () => {
       .post('/api/auth/login').send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }).expect(200)
     adminToken = login.body.accessToken
 
+    const created = await request(app.getHttpServer())
+      .post('/api/admin/users').set('Authorization', `Bearer ${adminToken}`)
+      .send({ fullName: 'Orders E2E Member', email: MEMBER_EMAIL, role: 'MEMBER' }).expect(201)
+    const memberLogin = await request(app.getHttpServer())
+      .post('/api/auth/login').send({ email: MEMBER_EMAIL, password: created.body.temporaryPassword }).expect(200)
+    memberToken = memberLogin.body.accessToken
+
     const product = await request(app.getHttpServer())
       .post('/api/admin/products').set('Authorization', `Bearer ${adminToken}`)
       .send({ name: 'Order E2E Product', priceCents: 120000 }).expect(201)
@@ -38,6 +47,7 @@ describe('Orders (e2e)', () => {
     if (orderId) await prisma.orderItem.deleteMany({ where: { orderId } })
     if (orderId) await prisma.order.deleteMany({ where: { id: orderId } })
     if (productId) await prisma.product.deleteMany({ where: { id: productId } })
+    await prisma.user.deleteMany({ where: { email: MEMBER_EMAIL } })
     await app.close()
   })
 
@@ -62,6 +72,32 @@ describe('Orders (e2e)', () => {
       .expect(200)
 
     expect(detail.body.items[0].unitPriceCents).toBe(120000)
+  })
+
+  it('admin updates order status PENDING_PAYMENT_REVIEW → CONFIRMED', async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/admin/orders/${orderId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'CONFIRMED' })
+      .expect(200)
+
+    expect(res.body.status).toBe('CONFIRMED')
+  })
+
+  it('invalid transition CONFIRMED → REJECTED → 422', async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/admin/orders/${orderId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'REJECTED' })
+      .expect(422)
+  })
+
+  it('MEMBER cannot update order status → 403', async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/admin/orders/${orderId}`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .send({ status: 'CANCELLED' })
+      .expect(403)
   })
 
   it('paymentProofUrl not https → 400', async () => {

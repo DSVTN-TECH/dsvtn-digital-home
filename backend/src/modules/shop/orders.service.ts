@@ -1,8 +1,24 @@
 import { Inject, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import { Order } from '@prisma/client'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
 import { ProductsRepository } from './products.repository'
 import { OrdersRepository } from './orders.repository'
 import { CreateOrderDto } from './dto/create-order.dto'
+
+type OrderStatus = Order['status']
+
+const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING_PAYMENT_REVIEW: ['CONFIRMED', 'REJECTED', 'CANCELLED'],
+  CONFIRMED: ['DELIVERED', 'CANCELLED'],
+  REJECTED: [],
+  DELIVERED: [],
+  CANCELLED: [],
+}
+
+export function isAllowedOrderTransition(from: OrderStatus, to: OrderStatus): boolean {
+  if (from === to) return true
+  return ALLOWED_TRANSITIONS[from].includes(to)
+}
 
 @Injectable()
 export class OrdersService {
@@ -44,5 +60,16 @@ export class OrdersService {
     const order = await this.orders.findById(id)
     if (!order) throw new NotFoundException('Order not found')
     return order
+  }
+
+  async updateStatus(id: string, newStatus: OrderStatus) {
+    const order = await this.orders.findById(id)
+    if (!order) throw new NotFoundException('Order not found')
+    if (!isAllowedOrderTransition(order.status, newStatus)) {
+      throw new UnprocessableEntityException(
+        `Cannot transition order from ${order.status} to ${newStatus}`,
+      )
+    }
+    return this.orders.updateStatus(id, newStatus)
   }
 }

@@ -1,7 +1,7 @@
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
-import { OrdersService } from './orders.service'
+import { OrdersService, isAllowedOrderTransition } from './orders.service'
 
 const activeProduct = {
   id: 'p-1',
@@ -102,5 +102,61 @@ describe('OrdersService', () => {
   it('findOne: throws NotFoundException when order missing', async () => {
     ordersRepo.findById.mockResolvedValue(null)
     await expect(service.findOne('bad')).rejects.toBeInstanceOf(NotFoundException)
+  })
+
+  describe('isAllowedOrderTransition', () => {
+    it.each([
+      ['PENDING_PAYMENT_REVIEW', 'CONFIRMED'],
+      ['PENDING_PAYMENT_REVIEW', 'REJECTED'],
+      ['PENDING_PAYMENT_REVIEW', 'CANCELLED'],
+      ['CONFIRMED', 'DELIVERED'],
+      ['CONFIRMED', 'CANCELLED'],
+    ] as const)('%s → %s is allowed', (from, to) => {
+      expect(isAllowedOrderTransition(from, to)).toBe(true)
+    })
+
+    it.each([
+      ['PENDING_PAYMENT_REVIEW', 'DELIVERED'],
+      ['CONFIRMED', 'REJECTED'],
+      ['REJECTED', 'CONFIRMED'],
+      ['REJECTED', 'DELIVERED'],
+      ['DELIVERED', 'CANCELLED'],
+      ['CANCELLED', 'CONFIRMED'],
+    ] as const)('%s → %s is NOT allowed', (from, to) => {
+      expect(isAllowedOrderTransition(from, to)).toBe(false)
+    })
+
+    it('same status returns true for non-terminal', () => {
+      expect(isAllowedOrderTransition('PENDING_PAYMENT_REVIEW', 'PENDING_PAYMENT_REVIEW')).toBe(
+        true,
+      )
+    })
+  })
+
+  describe('updateStatus', () => {
+    it('updates when transition is valid', async () => {
+      const order = { ...baseOrder, status: 'PENDING_PAYMENT_REVIEW' as const }
+      ordersRepo.findById.mockResolvedValue(order)
+      ordersRepo.updateStatus.mockResolvedValue({ ...order, status: 'CONFIRMED' })
+
+      const result = await service.updateStatus('o-1', 'CONFIRMED')
+      expect(result.status).toBe('CONFIRMED')
+      expect(ordersRepo.updateStatus).toHaveBeenCalledWith('o-1', 'CONFIRMED')
+    })
+
+    it('throws NotFoundException when order does not exist', async () => {
+      ordersRepo.findById.mockResolvedValue(null)
+      await expect(service.updateStatus('bad', 'CONFIRMED')).rejects.toBeInstanceOf(
+        NotFoundException,
+      )
+    })
+
+    it('throws UnprocessableEntityException on invalid transition', async () => {
+      const order = { ...baseOrder, status: 'REJECTED' as const }
+      ordersRepo.findById.mockResolvedValue(order)
+      await expect(service.updateStatus('o-1', 'CONFIRMED')).rejects.toBeInstanceOf(
+        UnprocessableEntityException,
+      )
+    })
   })
 })
