@@ -77,7 +77,11 @@ export interface Order {
 // ─── Generic API error ────────────────────────────────────────
 
 export interface ApiErrorBody {
-  statusCode: number
+  timestamp: string
+  status: number
+  error: string
   message: string
-  error?: string
+  code: string
+  path: string
+  requestId: string
 }

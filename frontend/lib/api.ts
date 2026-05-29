@@ -1,21 +1,28 @@
+import { ApiErrorBody } from '@/types/api'
 import { getToken } from './auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'
 
 export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    message: string,
-  ) {
-    super(message)
+  constructor(public readonly body: ApiErrorBody) {
+    super(body.message)
     this.name = 'ApiError'
+  }
+
+  get status() {
+    return this.body.status
+  }
+
+  get code() {
+    return this.body.code
+  }
+
+  get requestId() {
+    return this.body.requestId
   }
 }
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
 
   const headers: Record<string, string> = {
@@ -33,8 +40,16 @@ export async function apiFetch<T>(
   })
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({ message: response.statusText }))
-    throw new ApiError(response.status, body.message ?? 'Request failed')
+    const body = (await response.json().catch(() => ({
+      timestamp: new Date().toISOString(),
+      status: response.status,
+      error: response.statusText,
+      message: response.statusText || 'Request failed',
+      code: 'UNKNOWN_ERROR',
+      path,
+      requestId: '',
+    }))) as ApiErrorBody
+    throw new ApiError(body)
   }
 
   // Handle 204 No Content
