@@ -1,7 +1,9 @@
 import { apiFetch } from '@/lib/api'
-import { mockProducts } from '@/lib/mock/shop'
+import { mockOrders, mockProducts } from '@/lib/mock/shop'
+import type { Order, OrderStatus } from '@/types/api'
 
 export type ProductStatus = 'ACTIVE' | 'INACTIVE'
+export type { OrderStatus }
 
 export interface Product {
   id: string
@@ -32,9 +34,29 @@ export interface CreateOrderResult {
   createdAt: string
 }
 
+export type AdminOrder = Order
+
+export const ORDER_STATUSES: OrderStatus[] = [
+  'PENDING_PAYMENT_REVIEW',
+  'CONFIRMED',
+  'REJECTED',
+  'DELIVERED',
+  'CANCELLED',
+]
+
+export const ALLOWED_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING_PAYMENT_REVIEW: ['CONFIRMED', 'REJECTED', 'CANCELLED'],
+  CONFIRMED: ['DELIVERED', 'CANCELLED'],
+  REJECTED: [],
+  DELIVERED: [],
+  CANCELLED: [],
+}
+
 export interface ShopDataSource {
   listProducts(): Promise<Product[]>
   createOrder(input: CreateOrderInput): Promise<CreateOrderResult>
+  listAdminOrders(status?: OrderStatus): Promise<AdminOrder[]>
+  updateOrderStatus(id: string, status: OrderStatus): Promise<AdminOrder>
 }
 
 export class ApiShopDataSource implements ShopDataSource {
@@ -48,9 +70,22 @@ export class ApiShopDataSource implements ShopDataSource {
       body: JSON.stringify(input),
     })
   }
+
+  async listAdminOrders(status?: OrderStatus): Promise<AdminOrder[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : ''
+    return apiFetch<AdminOrder[]>(`/admin/orders${query}`)
+  }
+
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<AdminOrder> {
+    return apiFetch<AdminOrder>(`/admin/orders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    })
+  }
 }
 
 const mockProductStore: Product[] = [...mockProducts]
+const mockOrderStore: AdminOrder[] = [...mockOrders]
 
 export class MockShopDataSource implements ShopDataSource {
   async listProducts(): Promise<Product[]> {
@@ -72,6 +107,27 @@ export class MockShopDataSource implements ShopDataSource {
       status: 'PENDING_PAYMENT_REVIEW',
       createdAt: new Date().toISOString(),
     })
+  }
+
+  async listAdminOrders(status?: OrderStatus): Promise<AdminOrder[]> {
+    const list = status ? mockOrderStore.filter((order) => order.status === status) : mockOrderStore
+    return Promise.resolve([...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+  }
+
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<AdminOrder> {
+    const orderIndex = mockOrderStore.findIndex((order) => order.id === id)
+    if (orderIndex < 0) {
+      throw new Error('Không tìm thấy đơn hàng')
+    }
+
+    const order = mockOrderStore[orderIndex]
+    if (!ALLOWED_ORDER_TRANSITIONS[order.status].includes(status)) {
+      throw new Error('Chuyển trạng thái không hợp lệ')
+    }
+
+    const updated = { ...order, status }
+    mockOrderStore[orderIndex] = updated
+    return Promise.resolve(updated)
   }
 }
 
