@@ -101,7 +101,7 @@ model VolunteerApplication {
   fullName     String            @map("full_name")
   email        String
   phone        String
-  studentId    String?           @map("student_id")
+  studentId    String            @map("student_id")
   note         String?
   status       ApplicationStatus @default(PENDING)
   reviewedById String?           @map("reviewed_by")
