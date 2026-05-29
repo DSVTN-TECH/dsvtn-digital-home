@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common'
+import { AssignmentStatus } from '@prisma/client'
 import {
   ACTIVITIES_REPOSITORY,
   REGISTRATIONS_REPOSITORY,
@@ -80,5 +81,45 @@ export class MatchingService {
     const activity = await this.activities.findById(activityId)
     if (!activity) throw new NotFoundException('Activity not found')
     return this.assignments.findByActivityAndUser(activityId, userId)
+  }
+
+  async overrideAssignment(
+    id: string,
+    dto: { userId?: string; taskId?: string; status?: AssignmentStatus },
+  ) {
+    const assignment = await this.assignments.findById(id)
+    if (!assignment) throw new NotFoundException('Assignment not found')
+
+    const nextTaskId = dto.taskId ?? assignment.taskId
+    const nextUserId = dto.userId ?? assignment.userId
+
+    if (dto.taskId) {
+      const task = await this.tasks.findById(dto.taskId)
+      if (!task || task.activityId !== assignment.activityId) {
+        throw new UnprocessableEntityException('Task does not belong to assignment activity')
+      }
+
+      const usedSlots = await this.assignments.countByTask(dto.taskId, assignment.id)
+      if (usedSlots >= task.slotCount) {
+        throw new UnprocessableEntityException('Task has no available slot')
+      }
+    }
+
+    if (dto.userId) {
+      const conflict = await this.assignments.findUserConflict(
+        assignment.activityId,
+        dto.userId,
+        assignment.id,
+      )
+      if (conflict) {
+        throw new ConflictException('User already has assignment in this activity')
+      }
+    }
+
+    return this.assignments.updateManual(id, {
+      taskId: nextTaskId,
+      userId: nextUserId,
+      status: dto.status,
+    })
   }
 }

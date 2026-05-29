@@ -11,4 +11,14 @@ export class ApiMatchingDataSource implements MatchingDataSource {
   async listAssignments(activityId: string): Promise<SavedAssignment[]> {
     return apiFetch<SavedAssignment[]>(`/admin/activities/${activityId}/assignments`)
   }
+
+  async overrideAssignment(
+    id: string,
+    input: { userId?: string; taskId?: string; status?: string },
+  ): Promise<SavedAssignment> {
+    return apiFetch<SavedAssignment>(`/admin/assignments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    })
+  }
 }

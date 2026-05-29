@@ -6,6 +6,8 @@ import { getMatchingDataSource } from '@/lib/datasource'
 import type { MatcherRunResult, SavedAssignment } from '@/lib/datasource/matching.datasource'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -22,6 +24,8 @@ export default function AdminMatcherPage() {
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState<SavedAssignment | null>(null)
+  const [editForm, setEditForm] = useState({ userId: '', taskId: '', status: 'PROPOSED' })
 
   const fetchAssignments = useCallback(async () => {
     setLoading(true)
@@ -49,6 +53,34 @@ export default function AdminMatcherPage() {
       setError(err instanceof Error ? err.message : 'Chạy matcher thất bại')
     } finally {
       setRunning(false)
+    }
+  }
+
+  function openEdit(assignment: SavedAssignment) {
+    setEditing(assignment)
+    setEditForm({
+      userId: assignment.userId,
+      taskId: assignment.taskId,
+      status: assignment.status,
+    })
+  }
+
+  async function handleOverride() {
+    if (!editing) return
+    setError(null)
+    try {
+      const ds = getMatchingDataSource()
+      const updated = await ds.overrideAssignment(editing.id, {
+        userId: editForm.userId.trim() || undefined,
+        taskId: editForm.taskId.trim() || undefined,
+        status: editForm.status,
+      })
+      setAssignments((current) =>
+        current.map((assignment) => (assignment.id === updated.id ? updated : assignment)),
+      )
+      setEditing(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Cập nhật assignment thất bại')
     }
   }
 
@@ -122,6 +154,7 @@ export default function AdminMatcherPage() {
                 <TableHead>Task ID</TableHead>
                 <TableHead>Source</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -135,12 +168,70 @@ export default function AdminMatcherPage() {
                   <TableCell>
                     <Badge variant="outline">{a.status}</Badge>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(a)}>
+                      Sửa
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-lg rounded-md border bg-background p-5 shadow-lg">
+            <h2 className="text-lg font-semibold">Sửa assignment</h2>
+            <div className="mt-4 grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-user-id">User ID</Label>
+                <Input
+                  id="edit-user-id"
+                  value={editForm.userId}
+                  onChange={(event) =>
+                    setEditForm((current) => ({ ...current, userId: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-task-id">Task ID</Label>
+                <Input
+                  id="edit-task-id"
+                  value={editForm.taskId}
+                  onChange={(event) =>
+                    setEditForm((current) => ({ ...current, taskId: event.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <select
+                  id="edit-status"
+                  value={editForm.status}
+                  onChange={(event) =>
+                    setEditForm((current) => ({ ...current, status: event.target.value }))
+                  }
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {['PROPOSED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditing(null)}>
+                Huỷ
+              </Button>
+              <Button onClick={handleOverride}>Lưu</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -29,4 +29,8 @@ export interface SavedAssignment {
 export interface MatchingDataSource {
   run(activityId: string): Promise<MatcherRunResult>
   listAssignments(activityId: string): Promise<SavedAssignment[]>
+  overrideAssignment(
+    id: string,
+    input: { userId?: string; taskId?: string; status?: string },
+  ): Promise<SavedAssignment>
 }

@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { MatchingService } from './matching.service'
+import { UpdateAssignmentDto } from './dto/update-assignment.dto'
 
 @ApiTags('matching')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -32,5 +33,12 @@ export class MatchingController {
   @ApiOperation({ summary: 'Get my assignment for activity (member)' })
   getMyAssignments(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.service.getMyAssignments(id, user.id)
+  }
+
+  @Patch('admin/assignments/:id')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Manual override assignment (admin)' })
+  overrideAssignment(@Param('id') id: string, @Body() dto: UpdateAssignmentDto) {
+    return this.service.overrideAssignment(id, dto)
   }
 }
