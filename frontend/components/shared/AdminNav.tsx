@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/volunteer-applications', label: 'Đơn TNV' },
+  { href: '/admin/activities', label: 'Hoạt động' },
 ]
 
 interface AdminNavProps {
