@@ -38,6 +38,7 @@ export class UsersService {
       fullName: dto.fullName,
       email: dto.email,
       passwordHash,
+      mustChangePassword: true,
       role: dto.role,
     })
 

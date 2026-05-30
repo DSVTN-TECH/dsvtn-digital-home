@@ -1,5 +1,5 @@
 import { ApiErrorBody } from '@/types/api'
-import { getToken } from './auth'
+import { getCsrfToken } from './auth'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'
 
@@ -23,20 +23,21 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken()
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   }
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+  const method = options.method?.toUpperCase() ?? 'GET'
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrfToken = getCsrfToken()
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken
   }
 
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
+    credentials: 'include',
   })
 
   if (!response.ok) {

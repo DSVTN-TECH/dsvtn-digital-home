@@ -4,6 +4,7 @@ import request = require('supertest')
 import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { PrismaService } from '../src/prisma/prisma.service'
+import { AuthSession, loginAndChangePassword, loginSession, withAuth } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -12,8 +13,8 @@ const MEMBER_EMAIL = `act-member-${Date.now()}@dsvtn.vn`
 describe('Activities (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
-  let adminToken: string
-  let memberToken: string
+  let adminSession: AuthSession
+  let memberSession: AuthSession
   let activityId: string
 
   beforeAll(async () => {
@@ -25,16 +26,20 @@ describe('Activities (e2e)', () => {
     await app.init()
     prisma = app.get(PrismaService)
 
-    const adminLogin = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }).expect(200)
-    adminToken = adminLogin.body.accessToken
+    adminSession = await loginSession(app, ADMIN_EMAIL, ADMIN_PASSWORD)
 
-    const createMember = await request(app.getHttpServer())
-      .post('/api/admin/users').set('Authorization', `Bearer ${adminToken}`)
+    const createMember = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/users'),
+      adminSession,
+      true,
+    )
       .send({ fullName: 'Act Member', email: MEMBER_EMAIL, role: 'MEMBER' }).expect(201)
-    const memberLogin = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: MEMBER_EMAIL, password: createMember.body.temporaryPassword }).expect(200)
-    memberToken = memberLogin.body.accessToken
+    memberSession = await loginAndChangePassword(
+      app,
+      MEMBER_EMAIL,
+      createMember.body.temporaryPassword,
+      'act-password-123',
+    )
   })
 
   afterAll(async () => {
@@ -44,8 +49,11 @@ describe('Activities (e2e)', () => {
   })
 
   it('admin creates activity → 201', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/admin/activities').set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/activities'),
+      adminSession,
+      true,
+    )
       .send({ title: 'E2E Activity', startTime: '2026-07-01T08:00:00Z', endTime: '2026-07-01T17:00:00Z' })
       .expect(201)
     expect(res.body.id).toBeDefined()
@@ -54,40 +62,46 @@ describe('Activities (e2e)', () => {
   })
 
   it('admin lists activities includes created one', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/admin/activities').set('Authorization', `Bearer ${adminToken}`).expect(200)
+    const res = await withAuth(request(app.getHttpServer()).get('/api/admin/activities'), adminSession).expect(200)
     expect(res.body.some((a: { id: string }) => a.id === activityId)).toBe(true)
   })
 
   it('invalid transition DRAFT → COMPLETED → 422', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/activities/${activityId}`).set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/activities/${activityId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'COMPLETED' }).expect(422)
   })
 
   it('valid transition DRAFT → OPEN', async () => {
-    const res = await request(app.getHttpServer())
-      .patch(`/api/admin/activities/${activityId}`).set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/activities/${activityId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'OPEN' }).expect(200)
     expect(res.body.status).toBe('OPEN')
   })
 
   it('member sees OPEN activity', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/member/activities').set('Authorization', `Bearer ${memberToken}`).expect(200)
+    const res = await withAuth(request(app.getHttpServer()).get('/api/member/activities'), memberSession).expect(200)
     expect(res.body.some((a: { id: string }) => a.id === activityId)).toBe(true)
   })
 
   it('valid transition OPEN → CLOSED', async () => {
-    const res = await request(app.getHttpServer())
-      .patch(`/api/admin/activities/${activityId}`).set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/activities/${activityId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'CLOSED' }).expect(200)
     expect(res.body.status).toBe('CLOSED')
   })
 
   it('member cannot see CLOSED activity in OPEN list', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/member/activities').set('Authorization', `Bearer ${memberToken}`).expect(200)
+    const res = await withAuth(request(app.getHttpServer()).get('/api/member/activities'), memberSession).expect(200)
     expect(res.body.some((a: { id: string }) => a.id === activityId)).toBe(false)
   })
 })
@@ -95,7 +109,7 @@ describe('Activities (e2e)', () => {
 describe('Tasks (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
-  let adminToken: string
+  let adminSession: AuthSession
   let activityId: string
   let taskId: string
 
@@ -108,12 +122,13 @@ describe('Tasks (e2e)', () => {
     await app.init()
     prisma = app.get(PrismaService)
 
-    const login = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: 'admin@dsvtn.vn', password: 'changeme' }).expect(200)
-    adminToken = login.body.accessToken
+    adminSession = await loginSession(app, 'admin@dsvtn.vn', 'changeme')
 
-    const act = await request(app.getHttpServer())
-      .post('/api/admin/activities').set('Authorization', `Bearer ${adminToken}`)
+    const act = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/activities'),
+      adminSession,
+      true,
+    )
       .send({ title: 'Task E2E Activity', startTime: '2026-08-01T08:00:00Z', endTime: '2026-08-01T17:00:00Z' })
       .expect(201)
     activityId = act.body.id
@@ -126,9 +141,11 @@ describe('Tasks (e2e)', () => {
   })
 
   it('create task → 201 with correct activityId', async () => {
-    const res = await request(app.getHttpServer())
-      .post(`/api/admin/activities/${activityId}/tasks`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).post(`/api/admin/activities/${activityId}/tasks`),
+      adminSession,
+      true,
+    )
       .send({ name: 'Hậu cần', slotCount: 3, priority: 1 })
       .expect(201)
     expect(res.body.activityId).toBe(activityId)
@@ -137,33 +154,40 @@ describe('Tasks (e2e)', () => {
   })
 
   it('list tasks for activity', async () => {
-    const res = await request(app.getHttpServer())
-      .get(`/api/admin/activities/${activityId}/tasks`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).get(`/api/admin/activities/${activityId}/tasks`),
+      adminSession,
+    )
       .expect(200)
     expect(res.body.some((t: { id: string }) => t.id === taskId)).toBe(true)
   })
 
   it('slotCount < 0 → 400', async () => {
-    await request(app.getHttpServer())
-      .post(`/api/admin/activities/${activityId}/tasks`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).post(`/api/admin/activities/${activityId}/tasks`),
+      adminSession,
+      true,
+    )
       .send({ name: 'Bad', slotCount: -1 })
       .expect(400)
   })
 
   it('create task for non-existent activity → 404', async () => {
-    await request(app.getHttpServer())
-      .post('/api/admin/activities/00000000-0000-0000-0000-000000000000/tasks')
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).post('/api/admin/activities/00000000-0000-0000-0000-000000000000/tasks'),
+      adminSession,
+      true,
+    )
       .send({ name: 'X', slotCount: 1 })
       .expect(404)
   })
 
   it('update task slotCount + priority', async () => {
-    const res = await request(app.getHttpServer())
-      .patch(`/api/admin/tasks/${taskId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/tasks/${taskId}`),
+      adminSession,
+      true,
+    )
       .send({ slotCount: 5, priority: 2 })
       .expect(200)
     expect(res.body.slotCount).toBe(5)

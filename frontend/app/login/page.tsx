@@ -6,8 +6,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { apiFetch, ApiError } from '@/lib/api'
-import { setToken } from '@/lib/auth'
-import { getRoleHomePath, useAuth } from '@/hooks/useAuth'
+import { getPostLoginPath, useAuth } from '@/hooks/useAuth'
 import type { LoginResponse } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,7 +34,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isLoggedIn && user) {
-      router.replace(getRoleHomePath(user.role))
+      router.replace(getPostLoginPath(user))
     }
   }, [isLoading, isLoggedIn, user, router])
 
@@ -46,8 +45,7 @@ export default function LoginPage() {
         method: 'POST',
         body: JSON.stringify(values),
       })
-      setToken(res.accessToken)
-      router.push(getRoleHomePath(res.user.role))
+      router.push(getPostLoginPath(res.user))
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Đăng nhập thất bại. Vui lòng thử lại.'

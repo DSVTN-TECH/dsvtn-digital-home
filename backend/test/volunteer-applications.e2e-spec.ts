@@ -4,6 +4,7 @@ import request = require('supertest')
 import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { PrismaService } from '../src/prisma/prisma.service'
+import { AuthSession, loginAndChangePassword, loginSession, withAuth } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -13,8 +14,8 @@ const APP_EMAIL = `va-app-${Date.now()}@example.com`
 describe('Volunteer Applications (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
-  let adminToken: string
-  let memberToken: string
+  let adminSession: AuthSession
+  let memberSession: AuthSession
   let applicationId: string
 
   beforeAll(async () => {
@@ -32,23 +33,22 @@ describe('Volunteer Applications (e2e)', () => {
 
     prisma = app.get(PrismaService)
 
-    const adminLogin = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
-      .expect(200)
-    adminToken = adminLogin.body.accessToken
+    adminSession = await loginSession(app, ADMIN_EMAIL, ADMIN_PASSWORD)
 
-    const createMember = await request(app.getHttpServer())
-      .post('/api/admin/users')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const createMember = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/users'),
+      adminSession,
+      true,
+    )
       .send({ fullName: 'VA Member', email: MEMBER_EMAIL, role: 'MEMBER' })
       .expect(201)
 
-    const memberLogin = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: MEMBER_EMAIL, password: createMember.body.temporaryPassword })
-      .expect(200)
-    memberToken = memberLogin.body.accessToken
+    memberSession = await loginAndChangePassword(
+      app,
+      MEMBER_EMAIL,
+      createMember.body.temporaryPassword,
+      'va-password-123',
+    )
   })
 
   afterAll(async () => {
@@ -91,12 +91,13 @@ describe('Volunteer Applications (e2e)', () => {
 
     await request(app.getHttpServer())
       .get('/api/admin/volunteer-applications')
-      .set('Authorization', `Bearer ${memberToken}`)
+      .set('Cookie', memberSession.cookies)
       .expect(403)
 
-    const list = await request(app.getHttpServer())
-      .get('/api/admin/volunteer-applications?status=PENDING')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const list = await withAuth(
+      request(app.getHttpServer()).get('/api/admin/volunteer-applications?status=PENDING'),
+      adminSession,
+    )
       .expect(200)
 
     expect(Array.isArray(list.body)).toBe(true)
@@ -104,9 +105,11 @@ describe('Volunteer Applications (e2e)', () => {
   })
 
   it('admin review updates status and reviewedBy/reviewedAt', async () => {
-    const reviewed = await request(app.getHttpServer())
-      .patch(`/api/admin/volunteer-applications/${applicationId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const reviewed = await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/volunteer-applications/${applicationId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'APPROVED' })
       .expect(200)
 
@@ -114,9 +117,10 @@ describe('Volunteer Applications (e2e)', () => {
     expect(reviewed.body.reviewedById).toBeDefined()
     expect(reviewed.body.reviewedAt).toBeDefined()
 
-    const approved = await request(app.getHttpServer())
-      .get('/api/admin/volunteer-applications?status=APPROVED')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const approved = await withAuth(
+      request(app.getHttpServer()).get('/api/admin/volunteer-applications?status=APPROVED'),
+      adminSession,
+    )
       .expect(200)
 
     expect(approved.body.some((a: { id: string }) => a.id === applicationId)).toBe(true)

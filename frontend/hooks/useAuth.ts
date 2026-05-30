@@ -1,34 +1,28 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getToken } from '@/lib/auth'
+import { apiFetch } from '@/lib/api'
 import type { AuthUser, UserRole } from '@/types/api'
-
-function decodeJwtPayload(token: string): AuthUser | null {
-  try {
-    const payload = token.split('.')[1]
-    const decoded = JSON.parse(atob(payload))
-    return {
-      id: decoded.sub as string,
-      email: decoded.email as string,
-      role: decoded.role as UserRole,
-      fullName: decoded.fullName as string,
-    }
-  } catch {
-    return null
-  }
-}
 
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const token = getToken()
-    if (token) {
-      setUser(decodeJwtPayload(token))
+    let cancelled = false
+    apiFetch<{ user: AuthUser }>('/auth/me')
+      .then((response) => {
+        if (!cancelled) setUser(response.user)
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null)
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+    return () => {
+      cancelled = true
     }
-    setIsLoading(false)
   }, [])
 
   return {
@@ -50,4 +44,8 @@ export function getRoleHomePath(role: UserRole): string {
     case 'LOGISTIC':
       return '/logistic/orders'
   }
+}
+
+export function getPostLoginPath(user: AuthUser): string {
+  return user.mustChangePassword ? '/auth/change-password' : getRoleHomePath(user.role)
 }

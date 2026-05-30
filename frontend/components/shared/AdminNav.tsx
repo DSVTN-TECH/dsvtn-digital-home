@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { clearToken } from '@/lib/auth'
+import { logout } from '@/lib/auth'
 import type { AuthUser } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -22,8 +22,8 @@ export function AdminNav({ user }: AdminNavProps) {
   const pathname = usePathname()
   const router = useRouter()
 
-  function handleLogout() {
-    clearToken()
+  async function handleLogout() {
+    await logout()
     router.push('/login')
   }
 

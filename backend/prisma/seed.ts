@@ -13,6 +13,7 @@ async function main() {
       fullName: 'Admin ĐSVTN',
       email: 'admin@dsvtn.vn',
       passwordHash,
+      mustChangePassword: false,
       role: 'ADMIN',
       status: 'ACTIVE',
     },

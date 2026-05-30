@@ -15,12 +15,16 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       router.replace('/login')
       return
     }
+    if (user?.mustChangePassword) {
+      router.replace('/auth/change-password')
+      return
+    }
     if (!isMember && !isAdmin) {
       router.replace('/')
     }
-  }, [isLoading, isLoggedIn, isMember, isAdmin, router])
+  }, [isLoading, isLoggedIn, isMember, isAdmin, user, router])
 
-  if (isLoading || !isLoggedIn || (!isMember && !isAdmin)) {
+  if (isLoading || !isLoggedIn || user?.mustChangePassword || (!isMember && !isAdmin)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>

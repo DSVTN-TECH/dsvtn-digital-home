@@ -4,6 +4,7 @@ import request = require('supertest')
 import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { PrismaService } from '../src/prisma/prisma.service'
+import { AuthSession, loginSession, withAuth } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -11,7 +12,7 @@ const ADMIN_PASSWORD = 'changeme'
 describe('Products (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
-  let adminToken: string
+  let adminSession: AuthSession
   let productId: string
 
   beforeAll(async () => {
@@ -23,9 +24,7 @@ describe('Products (e2e)', () => {
     await app.init()
     prisma = app.get(PrismaService)
 
-    const login = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }).expect(200)
-    adminToken = login.body.accessToken
+    adminSession = await loginSession(app, ADMIN_EMAIL, ADMIN_PASSWORD)
   })
 
   afterAll(async () => {
@@ -34,8 +33,11 @@ describe('Products (e2e)', () => {
   })
 
   it('admin creates product → 201', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/admin/products').set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/products'),
+      adminSession,
+      true,
+    )
       .send({ name: 'E2E Polo', priceCents: 150000 }).expect(201)
     expect(res.body.id).toBeDefined()
     expect(res.body.status).toBe('ACTIVE')
@@ -43,8 +45,11 @@ describe('Products (e2e)', () => {
   })
 
   it('priceCents <= 0 → 400', async () => {
-    await request(app.getHttpServer())
-      .post('/api/admin/products').set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).post('/api/admin/products'),
+      adminSession,
+      true,
+    )
       .send({ name: 'Bad', priceCents: 0 }).expect(400)
   })
 
@@ -54,8 +59,11 @@ describe('Products (e2e)', () => {
   })
 
   it('public cannot see INACTIVE product', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/products/${productId}`).set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/products/${productId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'INACTIVE' }).expect(200)
 
     await request(app.getHttpServer()).get(`/api/public/products/${productId}`).expect(404)
@@ -65,8 +73,7 @@ describe('Products (e2e)', () => {
   })
 
   it('admin sees all products including INACTIVE', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/api/admin/products').set('Authorization', `Bearer ${adminToken}`).expect(200)
+    const res = await withAuth(request(app.getHttpServer()).get('/api/admin/products'), adminSession).expect(200)
     expect(res.body.some((p: { id: string }) => p.id === productId)).toBe(true)
   })
 })

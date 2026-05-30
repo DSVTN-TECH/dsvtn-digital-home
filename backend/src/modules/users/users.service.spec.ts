@@ -9,6 +9,7 @@ const baseUser = {
   fullName: 'Test User',
   email: 'test@dsvtn.vn',
   passwordHash: '$2b$12$hash',
+  mustChangePassword: true,
   role: 'MEMBER' as const,
   status: 'ACTIVE' as const,
   fairnessScore: 0,
@@ -52,6 +53,7 @@ describe('UsersService', () => {
     expect(result.temporaryPassword).toBeDefined()
     expect(result).not.toHaveProperty('passwordHash')
     expect(result.email).toBe(baseUser.email)
+    expect(repo.create).toHaveBeenCalledWith(expect.objectContaining({ mustChangePassword: true }))
   })
 
   it('create: throws ConflictException when email already exists', async () => {

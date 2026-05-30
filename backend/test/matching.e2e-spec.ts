@@ -4,6 +4,7 @@ import request = require('supertest')
 import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { PrismaService } from '../src/prisma/prisma.service'
+import { AuthSession, loginAndChangePassword, loginSession, withAuth } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -13,8 +14,8 @@ const SECOND_MEMBER_EMAIL = `match-member-2-${Date.now()}@dsvtn.vn`
 describe('Matching (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
-  let adminToken: string
-  let memberToken: string
+  let adminSession: AuthSession
+  let memberSession: AuthSession
   let activityId: string
   let taskId: string
   let assignmentId: string
@@ -31,52 +32,80 @@ describe('Matching (e2e)', () => {
     await app.init()
     prisma = app.get(PrismaService)
 
-    const login = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }).expect(200)
-    adminToken = login.body.accessToken
+    adminSession = await loginSession(app, ADMIN_EMAIL, ADMIN_PASSWORD)
 
-    const createMember = await request(app.getHttpServer())
-      .post('/api/admin/users').set('Authorization', `Bearer ${adminToken}`)
+    const createMember = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/users'),
+      adminSession,
+      true,
+    )
       .send({ fullName: 'Match Member', email: MEMBER_EMAIL, role: 'MEMBER' }).expect(201)
-    const memberLogin = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: MEMBER_EMAIL, password: createMember.body.temporaryPassword }).expect(200)
-    memberToken = memberLogin.body.accessToken
+    memberSession = await loginAndChangePassword(
+      app,
+      MEMBER_EMAIL,
+      createMember.body.temporaryPassword,
+      'match-password-123',
+    )
 
-    const createSecondMember = await request(app.getHttpServer())
-      .post('/api/admin/users').set('Authorization', `Bearer ${adminToken}`)
+    const createSecondMember = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/users'),
+      adminSession,
+      true,
+    )
       .send({ fullName: 'Second Match Member', email: SECOND_MEMBER_EMAIL, role: 'MEMBER' }).expect(201)
     secondUserId = createSecondMember.body.id
 
-    const act = await request(app.getHttpServer())
-      .post('/api/admin/activities').set('Authorization', `Bearer ${adminToken}`)
+    const act = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/activities'),
+      adminSession,
+      true,
+    )
       .send({ title: 'Match E2E', startTime: '2026-10-01T08:00:00Z', endTime: '2026-10-01T17:00:00Z' }).expect(201)
     activityId = act.body.id
 
-    const task = await request(app.getHttpServer())
-      .post(`/api/admin/activities/${activityId}/tasks`).set('Authorization', `Bearer ${adminToken}`)
+    const task = await withAuth(
+      request(app.getHttpServer()).post(`/api/admin/activities/${activityId}/tasks`),
+      adminSession,
+      true,
+    )
       .send({ name: 'Task A', slotCount: 1 }).expect(201)
     taskId = task.body.id
 
-    const fullTask = await request(app.getHttpServer())
-      .post(`/api/admin/activities/${activityId}/tasks`).set('Authorization', `Bearer ${adminToken}`)
+    const fullTask = await withAuth(
+      request(app.getHttpServer()).post(`/api/admin/activities/${activityId}/tasks`),
+      adminSession,
+      true,
+    )
       .send({ name: 'Task Full', slotCount: 1 }).expect(201)
     fullTaskId = fullTask.body.id
 
-    const emptyTask = await request(app.getHttpServer())
-      .post(`/api/admin/activities/${activityId}/tasks`).set('Authorization', `Bearer ${adminToken}`)
+    const emptyTask = await withAuth(
+      request(app.getHttpServer()).post(`/api/admin/activities/${activityId}/tasks`),
+      adminSession,
+      true,
+    )
       .send({ name: 'Task Empty', slotCount: 1 }).expect(201)
     emptyTaskId = emptyTask.body.id
 
-    await request(app.getHttpServer())
-      .patch(`/api/admin/activities/${activityId}`).set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/activities/${activityId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'OPEN' }).expect(200)
 
-    await request(app.getHttpServer())
-      .post(`/api/member/activities/${activityId}/registrations`).set('Authorization', `Bearer ${memberToken}`)
+    await withAuth(
+      request(app.getHttpServer()).post(`/api/member/activities/${activityId}/registrations`),
+      memberSession,
+      true,
+    )
       .send({ preferences: [{ taskId, score: 3 }] }).expect(201)
 
-    await request(app.getHttpServer())
-      .patch(`/api/admin/activities/${activityId}`).set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/activities/${activityId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'CLOSED' }).expect(200)
   })
 
@@ -91,20 +120,26 @@ describe('Matching (e2e)', () => {
   })
 
   it('runs matcher, saves assignments, and marks activity MATCHED', async () => {
-    const run = await request(app.getHttpServer())
-      .post(`/api/admin/activities/${activityId}/matcher/run`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const run = await withAuth(
+      request(app.getHttpServer()).post(`/api/admin/activities/${activityId}/matcher/run`),
+      adminSession,
+      true,
+    )
       .expect(201)
 
     expect(run.body.activityId).toBe(activityId)
     expect(run.body.assignments).toEqual([{ userId: expect.any(String), taskId, source: 'MATCHER' }])
 
-    const activity = await request(app.getHttpServer())
-      .get(`/api/admin/activities/${activityId}`).set('Authorization', `Bearer ${adminToken}`).expect(200)
+    const activity = await withAuth(
+      request(app.getHttpServer()).get(`/api/admin/activities/${activityId}`),
+      adminSession,
+    ).expect(200)
     expect(activity.body.status).toBe('MATCHED')
 
-    const assignments = await request(app.getHttpServer())
-      .get(`/api/admin/activities/${activityId}/assignments`).set('Authorization', `Bearer ${adminToken}`).expect(200)
+    const assignments = await withAuth(
+      request(app.getHttpServer()).get(`/api/admin/activities/${activityId}/assignments`),
+      adminSession,
+    ).expect(200)
     expect(assignments.body).toHaveLength(1)
     assignmentId = assignments.body[0].id
 
@@ -119,9 +154,11 @@ describe('Matching (e2e)', () => {
   })
 
   it('manual override changes task and marks source MANUAL', async () => {
-    const res = await request(app.getHttpServer())
-      .patch(`/api/admin/assignments/${assignmentId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/assignments/${assignmentId}`),
+      adminSession,
+      true,
+    )
       .send({ taskId: emptyTaskId, status: 'CONFIRMED' })
       .expect(200)
 
@@ -131,32 +168,40 @@ describe('Matching (e2e)', () => {
   })
 
   it('manual override to full task returns 422', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/assignments/${assignmentId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/assignments/${assignmentId}`),
+      adminSession,
+      true,
+    )
       .send({ taskId: fullTaskId })
       .expect(422)
   })
 
   it('manual override to duplicate user returns 409', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/assignments/${assignmentId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/assignments/${assignmentId}`),
+      adminSession,
+      true,
+    )
       .send({ userId: secondUserId })
       .expect(409)
   })
 
   it('member sees only own assignment', async () => {
-    const mine = await request(app.getHttpServer())
-      .get(`/api/member/activities/${activityId}/assignments`).set('Authorization', `Bearer ${memberToken}`).expect(200)
+    const mine = await withAuth(
+      request(app.getHttpServer()).get(`/api/member/activities/${activityId}/assignments`),
+      memberSession,
+    ).expect(200)
     expect(mine.body).toHaveLength(1)
     expect(mine.body[0].taskId).toBe(emptyTaskId)
   })
 
   it('rerun after MATCHED → 409', async () => {
-    await request(app.getHttpServer())
-      .post(`/api/admin/activities/${activityId}/matcher/run`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).post(`/api/admin/activities/${activityId}/matcher/run`),
+      adminSession,
+      true,
+    )
       .expect(409)
   })
 })

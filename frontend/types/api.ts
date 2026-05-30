@@ -18,10 +18,10 @@ export interface AuthUser {
   fullName: string
   email: string
   role: UserRole
+  mustChangePassword: boolean
 }
 
 export interface LoginResponse {
-  accessToken: string
   user: AuthUser
 }
 
@@ -33,6 +33,7 @@ export interface User {
   email: string
   role: UserRole
   status: UserStatus
+  mustChangePassword: boolean
   fairnessScore: number
   createdAt: string
 }

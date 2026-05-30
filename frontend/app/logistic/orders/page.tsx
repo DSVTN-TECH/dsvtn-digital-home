@@ -7,15 +7,20 @@ import { useAuth } from '@/hooks/useAuth'
 
 export default function LogisticOrdersPage() {
   const router = useRouter()
-  const { isLoggedIn, isLoading, isLogistic } = useAuth()
+  const { user, isLoggedIn, isLoading, isLogistic } = useAuth()
 
   useEffect(() => {
-    if (!isLoading && !isLoggedIn) {
+    if (isLoading) return
+    if (!isLoggedIn) {
       router.replace('/login')
+      return
     }
-  }, [isLoading, isLoggedIn, router])
+    if (user?.mustChangePassword) {
+      router.replace('/auth/change-password')
+    }
+  }, [isLoading, isLoggedIn, user, router])
 
-  if (isLoading || !isLoggedIn) {
+  if (isLoading || !isLoggedIn || user?.mustChangePassword) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>

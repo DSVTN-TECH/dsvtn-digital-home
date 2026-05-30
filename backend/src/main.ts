@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module'
 import { AllExceptionsFilter } from './common/filters'
+import { csrfMiddleware } from './common/security/csrf.middleware'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -12,6 +13,8 @@ async function bootstrap() {
 
   // Global exception filter
   app.useGlobalFilters(new AllExceptionsFilter())
+
+  app.use(csrfMiddleware)
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -34,6 +37,7 @@ async function bootstrap() {
       .setTitle('DSVTN API')
       .setVersion('0.1.0')
       .setDescription('Internal API — ĐSVTN Digital Home & Task Matcher')
+      .addCookieAuth('dsvtn_access')
       .addBearerAuth()
       .build()
     const document = SwaggerModule.createDocument(app, config)

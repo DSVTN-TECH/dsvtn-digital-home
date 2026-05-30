@@ -15,12 +15,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace('/login')
       return
     }
+    if (user?.mustChangePassword) {
+      router.replace('/auth/change-password')
+      return
+    }
     if (!isAdmin) {
       router.replace('/')
     }
-  }, [isLoading, isLoggedIn, isAdmin, router])
+  }, [isLoading, isLoggedIn, isAdmin, user, router])
 
-  if (isLoading || !isLoggedIn || !isAdmin) {
+  if (isLoading || !isLoggedIn || user?.mustChangePassword || !isAdmin) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-muted-foreground">Loading...</p>

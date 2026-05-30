@@ -4,6 +4,7 @@ import request = require('supertest')
 import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { PrismaService } from '../src/prisma/prisma.service'
+import { AuthSession, loginAndChangePassword, loginSession, withAuth } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -12,8 +13,8 @@ const MEMBER_EMAIL = `e2e-orders-member-${Date.now()}@dsvtn.vn`
 describe('Orders (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
-  let adminToken: string
-  let memberToken: string
+  let adminSession: AuthSession
+  let memberSession: AuthSession
   let productId: string
   let orderId: string
 
@@ -26,19 +27,26 @@ describe('Orders (e2e)', () => {
     await app.init()
     prisma = app.get(PrismaService)
 
-    const login = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }).expect(200)
-    adminToken = login.body.accessToken
+    adminSession = await loginSession(app, ADMIN_EMAIL, ADMIN_PASSWORD)
 
-    const created = await request(app.getHttpServer())
-      .post('/api/admin/users').set('Authorization', `Bearer ${adminToken}`)
+    const created = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/users'),
+      adminSession,
+      true,
+    )
       .send({ fullName: 'Orders E2E Member', email: MEMBER_EMAIL, role: 'MEMBER' }).expect(201)
-    const memberLogin = await request(app.getHttpServer())
-      .post('/api/auth/login').send({ email: MEMBER_EMAIL, password: created.body.temporaryPassword }).expect(200)
-    memberToken = memberLogin.body.accessToken
+    memberSession = await loginAndChangePassword(
+      app,
+      MEMBER_EMAIL,
+      created.body.temporaryPassword,
+      'orders-password-123',
+    )
 
-    const product = await request(app.getHttpServer())
-      .post('/api/admin/products').set('Authorization', `Bearer ${adminToken}`)
+    const product = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/products'),
+      adminSession,
+      true,
+    )
       .send({ name: 'Order E2E Product', priceCents: 120000 }).expect(201)
     productId = product.body.id
   })
@@ -66,18 +74,21 @@ describe('Orders (e2e)', () => {
     expect(res.body.status).toBe('PENDING_PAYMENT_REVIEW')
     orderId = res.body.id
 
-    const detail = await request(app.getHttpServer())
-      .get(`/api/admin/orders/${orderId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const detail = await withAuth(
+      request(app.getHttpServer()).get(`/api/admin/orders/${orderId}`),
+      adminSession,
+    )
       .expect(200)
 
     expect(detail.body.items[0].unitPriceCents).toBe(120000)
   })
 
   it('admin updates order status PENDING_PAYMENT_REVIEW → CONFIRMED', async () => {
-    const res = await request(app.getHttpServer())
-      .patch(`/api/admin/orders/${orderId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/orders/${orderId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'CONFIRMED' })
       .expect(200)
 
@@ -85,17 +96,21 @@ describe('Orders (e2e)', () => {
   })
 
   it('invalid transition CONFIRMED → REJECTED → 422', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/orders/${orderId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/orders/${orderId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'REJECTED' })
       .expect(422)
   })
 
   it('MEMBER cannot update order status → 403', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/orders/${orderId}`)
-      .set('Authorization', `Bearer ${memberToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/orders/${orderId}`),
+      memberSession,
+      true,
+    )
       .send({ status: 'CANCELLED' })
       .expect(403)
   })
@@ -121,8 +136,11 @@ describe('Orders (e2e)', () => {
   })
 
   it('product INACTIVE → 422', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/products/${productId}`).set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/products/${productId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'INACTIVE' }).expect(200)
 
     await request(app.getHttpServer())

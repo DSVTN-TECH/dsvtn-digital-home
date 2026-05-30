@@ -4,6 +4,7 @@ import request = require('supertest')
 import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { PrismaService } from '../src/prisma/prisma.service'
+import { AuthSession, loginSession, withAuth } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -12,7 +13,7 @@ const SLUG_PREFIX = `e2e-article-${Date.now()}`
 describe('Articles (e2e)', () => {
   let app: INestApplication
   let prisma: PrismaService
-  let adminToken: string
+  let adminSession: AuthSession
   let articleId: string
   let articleSlug: string
 
@@ -27,11 +28,7 @@ describe('Articles (e2e)', () => {
     await app.init()
     prisma = app.get(PrismaService)
 
-    const login = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
-      .expect(200)
-    adminToken = login.body.accessToken
+    adminSession = await loginSession(app, ADMIN_EMAIL, ADMIN_PASSWORD)
   })
 
   afterAll(async () => {
@@ -44,9 +41,11 @@ describe('Articles (e2e)', () => {
   })
 
   it('admin creates draft article with auto-generated slug', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/admin/articles')
-      .set('Authorization', `Bearer ${adminToken}`)
+    const res = await withAuth(
+      request(app.getHttpServer()).post('/api/admin/articles'),
+      adminSession,
+      true,
+    )
       .send({
         title: SLUG_PREFIX,
         slug: '',
@@ -62,9 +61,11 @@ describe('Articles (e2e)', () => {
   })
 
   it('duplicate slug returns 409', async () => {
-    await request(app.getHttpServer())
-      .post('/api/admin/articles')
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).post('/api/admin/articles'),
+      adminSession,
+      true,
+    )
       .send({
         title: `${SLUG_PREFIX} duplicate`,
         slug: articleSlug,
@@ -81,9 +82,11 @@ describe('Articles (e2e)', () => {
   })
 
   it('publish makes article visible by slug', async () => {
-    await request(app.getHttpServer())
-      .patch(`/api/admin/articles/${articleId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    await withAuth(
+      request(app.getHttpServer()).patch(`/api/admin/articles/${articleId}`),
+      adminSession,
+      true,
+    )
       .send({ status: 'PUBLISHED' })
       .expect(200)
 
@@ -94,9 +97,11 @@ describe('Articles (e2e)', () => {
   })
 
   it('archive soft deletes article from public routes', async () => {
-    const archived = await request(app.getHttpServer())
-      .delete(`/api/admin/articles/${articleId}`)
-      .set('Authorization', `Bearer ${adminToken}`)
+    const archived = await withAuth(
+      request(app.getHttpServer()).delete(`/api/admin/articles/${articleId}`),
+      adminSession,
+      true,
+    )
       .expect(200)
     expect(archived.body.status).toBe('ARCHIVED')
 

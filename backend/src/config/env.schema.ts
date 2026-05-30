@@ -8,6 +8,7 @@ const envSchema = z.object({
   EMAIL_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
+  COOKIE_SECURE: z.enum(['true', 'false']).default('false'),
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })

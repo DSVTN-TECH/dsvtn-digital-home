@@ -5,6 +5,7 @@ export type CreateUserData = {
   fullName: string
   email: string
   passwordHash: string
+  mustChangePassword?: boolean
   role: 'ADMIN' | 'MEMBER' | 'LOGISTIC'
 }
 

@@ -87,6 +87,7 @@ model User {
   fullName      String     @map("full_name")
   email         String     @unique
   passwordHash  String     @map("password_hash")
+  mustChangePassword Boolean @default(false) @map("must_change_password")
   role          Role
   fairnessScore Int        @default(0) @map("fairness_score")
   status        UserStatus @default(ACTIVE)

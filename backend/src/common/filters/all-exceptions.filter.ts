@@ -33,7 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR
 
     const httpMessage = this.extractMessage(exception)
-    const code = this.mapStatusToCode(status)
+    const code = this.extractCode(exception) ?? this.mapStatusToCode(status)
     const error = HttpStatus[status] ?? 'Internal Server Error'
 
     const body: ErrorResponseBody = {
@@ -73,6 +73,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
     if (exception instanceof Error) return exception.message
     return 'Internal server error'
+  }
+
+  private extractCode(exception: unknown): string | null {
+    if (!(exception instanceof HttpException)) return null
+    const res = exception.getResponse()
+    if (typeof res !== 'object' || res === null) return null
+    const code = (res as Record<string, unknown>).code
+    return typeof code === 'string' ? code : null
   }
 
   private mapStatusToCode(status: number): string {

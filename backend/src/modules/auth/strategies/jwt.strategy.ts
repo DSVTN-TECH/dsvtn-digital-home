@@ -2,9 +2,11 @@ import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
+import { Request } from 'express'
 import { USERS_REPOSITORY } from '../../../common/repository'
 import { Inject } from '@nestjs/common'
 import { UsersRepository } from '../../users/users.repository'
+import { ACCESS_COOKIE, getCookieFromRequest } from '../auth.cookies'
 
 interface JwtPayload {
   sub: string
@@ -23,7 +25,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new Error('JWT_SECRET is not configured')
     }
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request: Request) => getCookieFromRequest(request, ACCESS_COOKIE) ?? null,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: secret,
     })
@@ -42,6 +47,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: user.email,
       role: user.role,
       status: user.status,
+      mustChangePassword: user.mustChangePassword,
     }
   }
 }
