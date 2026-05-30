@@ -55,6 +55,20 @@ export class PrismaAssignmentsRepository extends AssignmentsRepository {
     })
   }
 
+  async completeActivityAssignments(activityId: string): Promise<Assignment[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const confirmed = await tx.assignment.findMany({
+        where: { activityId, status: 'CONFIRMED' },
+      })
+      if (confirmed.length === 0) return []
+      await tx.assignment.updateMany({
+        where: { activityId, status: 'CONFIRMED' },
+        data: { status: 'COMPLETED' },
+      })
+      return confirmed.map((assignment) => ({ ...assignment, status: 'COMPLETED' as const }))
+    })
+  }
+
   async deleteByActivity(activityId: string): Promise<number> {
     const result = await this.prisma.assignment.deleteMany({
       where: { activityId, source: 'MATCHER' },

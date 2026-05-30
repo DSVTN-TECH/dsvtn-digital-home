@@ -1,41 +1,21 @@
-﻿'use client'
+'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import { AdminNav } from '@/components/shared/AdminNav'
+import { RoleShell, type ShellNavItem } from '@/components/shared/RoleShell'
+
+const navItems: ShellNavItem[] = [
+  { href: '/admin', label: 'Dashboard', exact: true },
+  { href: '/admin/users', label: 'Users' },
+  { href: '/admin/volunteer-applications', label: 'Đơn TNV' },
+  { href: '/admin/activities', label: 'Hoạt động' },
+  { href: '/admin/articles', label: 'Bài viết' },
+  { href: '/admin/products', label: 'Sản phẩm' },
+  { href: '/admin/orders', label: 'Đơn hàng' },
+]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const { user, isLoggedIn, isLoading, isAdmin } = useAuth()
-
-  useEffect(() => {
-    if (isLoading) return
-    if (!isLoggedIn) {
-      router.replace('/login')
-      return
-    }
-    if (user?.mustChangePassword) {
-      router.replace('/auth/change-password')
-      return
-    }
-    if (!isAdmin) {
-      router.replace('/')
-    }
-  }, [isLoading, isLoggedIn, isAdmin, user, router])
-
-  if (isLoading || !isLoggedIn || user?.mustChangePassword || !isAdmin) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex min-h-screen">
-      <AdminNav user={user!} />
-      <main className="flex-1 p-6">{children}</main>
-    </div>
+    <RoleShell title="ĐSVTN Admin" navItems={navItems} allow={['ADMIN']} showBell>
+      {children}
+    </RoleShell>
   )
 }

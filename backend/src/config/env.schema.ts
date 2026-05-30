@@ -11,6 +11,8 @@ const envSchema = z.object({
   COOKIE_SECURE: z.enum(['true', 'false']).default('false'),
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
   RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
+  CACHE_DEFAULT_TTL_SECONDS: z.coerce.number().default(60),
+  QUEUE_ENABLED: z.enum(['true', 'false']).default('true'),
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })

@@ -7,4 +7,6 @@ export const CACHE_KEY = {
   campaignPublic: (campaignId: string) => `cache:campaigns:public:${campaignId}`,
   campaignPublicPrefix: () => `cache:campaigns:public:`,
   reportsDashboard: () => `cache:reports:dashboard`,
+  galleryAlbums: () => `cache:gallery:albums`,
+  galleryAlbum: (albumId: string) => `cache:gallery:album:${albumId}`,
 } as const

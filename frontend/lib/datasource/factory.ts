@@ -13,6 +13,21 @@ import { MockMatchingDataSource } from './matching.mock'
 import type { MemberAssignmentsDataSource } from './assignments.datasource'
 import { ApiMemberAssignmentsDataSource } from './assignments.api'
 import { MockMemberAssignmentsDataSource } from './assignments.mock'
+import type { NotificationsDataSource } from './notifications.datasource'
+import { ApiNotificationsDataSource } from './notifications.api'
+import { MockNotificationsDataSource } from './notifications.mock'
+import type { ProfileDataSource } from './profile.datasource'
+import { ApiProfileDataSource } from './profile.api'
+import { MockProfileDataSource } from './profile.mock'
+import type { GamificationDataSource } from './gamification.datasource'
+import { ApiGamificationDataSource } from './gamification.api'
+import { MockGamificationDataSource } from './gamification.mock'
+import type { GalleryDataSource } from './gallery.datasource'
+import { ApiGalleryDataSource } from './gallery.api'
+import { MockGalleryDataSource } from './gallery.mock'
+import type { FeedDataSource } from './feed.datasource'
+import { ApiFeedDataSource } from './feed.api'
+import { MockFeedDataSource } from './feed.mock'
 
 type DataSourceMode = 'mock' | 'api'
 
@@ -23,6 +38,11 @@ let volunteerDataSource: VolunteerDataSource | null = null
 let memberActivitiesDataSource: MemberActivitiesDataSource | null = null
 let matchingDataSource: MatchingDataSource | null = null
 let memberAssignmentsDataSource: MemberAssignmentsDataSource | null = null
+let notificationsDataSource: NotificationsDataSource | null = null
+let profileDataSource: ProfileDataSource | null = null
+let gamificationDataSource: GamificationDataSource | null = null
+let galleryDataSource: GalleryDataSource | null = null
+let feedDataSource: FeedDataSource | null = null
 
 export function getActivitiesDataSource(): ActivitiesDataSource {
   if (!activitiesDataSource) {
@@ -61,4 +81,41 @@ export function getMemberAssignmentsDataSource(): MemberAssignmentsDataSource {
       mode === 'api' ? new ApiMemberAssignmentsDataSource() : new MockMemberAssignmentsDataSource()
   }
   return memberAssignmentsDataSource
+}
+
+export function getNotificationsDataSource(): NotificationsDataSource {
+  if (!notificationsDataSource) {
+    notificationsDataSource =
+      mode === 'api' ? new ApiNotificationsDataSource() : new MockNotificationsDataSource()
+  }
+  return notificationsDataSource
+}
+
+export function getProfileDataSource(): ProfileDataSource {
+  if (!profileDataSource) {
+    profileDataSource = mode === 'api' ? new ApiProfileDataSource() : new MockProfileDataSource()
+  }
+  return profileDataSource
+}
+
+export function getGamificationDataSource(): GamificationDataSource {
+  if (!gamificationDataSource) {
+    gamificationDataSource =
+      mode === 'api' ? new ApiGamificationDataSource() : new MockGamificationDataSource()
+  }
+  return gamificationDataSource
+}
+
+export function getGalleryDataSource(): GalleryDataSource {
+  if (!galleryDataSource) {
+    galleryDataSource = mode === 'api' ? new ApiGalleryDataSource() : new MockGalleryDataSource()
+  }
+  return galleryDataSource
+}
+
+export function getFeedDataSource(): FeedDataSource {
+  if (!feedDataSource) {
+    feedDataSource = mode === 'api' ? new ApiFeedDataSource() : new MockFeedDataSource()
+  }
+  return feedDataSource
 }

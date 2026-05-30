@@ -23,13 +23,34 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const method = options.method?.toUpperCase() ?? 'GET'
+  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+
+  try {
+    return await rawFetch<T>(path, options, method, isMutation)
+  } catch (error) {
+    if (isMutation && error instanceof ApiError && error.code === 'CSRF_INVALID') {
+      const refreshed = await bootstrapCsrf()
+      if (refreshed) {
+        return rawFetch<T>(path, options, method, isMutation)
+      }
+    }
+    throw error
+  }
+}
+
+async function rawFetch<T>(
+  path: string,
+  options: RequestInit,
+  method: string,
+  isMutation: boolean,
+): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   }
 
-  const method = options.method?.toUpperCase() ?? 'GET'
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+  if (isMutation) {
     const csrfToken = getCsrfToken()
     if (csrfToken) headers['X-CSRF-Token'] = csrfToken
   }
@@ -59,4 +80,16 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   return response.json() as Promise<T>
+}
+
+async function bootstrapCsrf(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+    return response.ok
+  } catch {
+    return false
+  }
 }

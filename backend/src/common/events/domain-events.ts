@@ -2,6 +2,7 @@ export const DomainEvents = {
   volunteerReviewed: 'volunteer.reviewed',
   matcherRun: 'matcher.run',
   assignmentOverride: 'assignment.override',
+  assignmentCompleted: 'assignment.completed',
   orderStatusChanged: 'order.status-changed',
   articlePublished: 'article.published',
   badgeUnlocked: 'badge.unlocked',

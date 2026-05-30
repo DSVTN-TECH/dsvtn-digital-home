@@ -22,5 +22,6 @@ export abstract class AssignmentsRepository {
     id: string,
     data: { userId?: string; taskId?: string; status?: AssignmentStatus },
   ): Promise<Assignment>
+  abstract completeActivityAssignments(activityId: string): Promise<Assignment[]>
   abstract deleteByActivity(activityId: string): Promise<number>
 }

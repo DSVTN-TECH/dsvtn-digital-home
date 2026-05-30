@@ -5,12 +5,14 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { AssignmentStatus } from '@prisma/client'
 import {
   ACTIVITIES_REPOSITORY,
   REGISTRATIONS_REPOSITORY,
   TASKS_REPOSITORY,
 } from '../../common/repository'
+import { DomainEvents } from '../../common/events/domain-events'
 import { LockService } from '../../common/lock'
 import { ActivitiesRepository } from '../activities/activities.repository'
 import { TasksRepository } from '../activities/tasks.repository'
@@ -31,6 +33,7 @@ export class MatchingService {
     @Inject(REGISTRATIONS_REPOSITORY) private readonly registrations: RegistrationsRepository,
     @Inject(ASSIGNMENTS_REPOSITORY) private readonly assignments: AssignmentsRepository,
     private readonly lock: LockService,
+    private readonly events: EventEmitter2,
   ) {}
 
   async runMatcher(activityId: string): Promise<MatcherResult & { activityId: string }> {
@@ -83,6 +86,16 @@ export class MatchingService {
 
     await this.activities.update(activityId, { status: 'MATCHED' })
 
+    for (const assignment of result.assignments) {
+      this.events.emit(DomainEvents.matcherRun, {
+        userId: assignment.userId,
+        sourceId: `${activityId}:${assignment.userId}`,
+        title: 'Bạn đã được phân công nhiệm vụ',
+        body: 'Kết quả ghép nhiệm vụ cho hoạt động đã sẵn sàng.',
+        linkUrl: `/member/assignments`,
+      })
+    }
+
     return { activityId, ...result }
   }
 
@@ -131,10 +144,56 @@ export class MatchingService {
       }
     }
 
-    return this.assignments.updateManual(id, {
+    const updated = await this.assignments.updateManual(id, {
       taskId: nextTaskId,
       userId: nextUserId,
       status: dto.status,
     })
+
+    this.events.emit(DomainEvents.assignmentOverride, {
+      userId: updated.userId,
+      sourceId: `${updated.id}:${updated.status}`,
+      title: 'Phân công của bạn đã được cập nhật',
+      body: 'Quản trị viên vừa điều chỉnh phân công của bạn.',
+      linkUrl: '/member/assignments',
+    })
+
+    return updated
+  }
+
+  async completeActivity(activityId: string) {
+    return this.lock.withLock(
+      `activity-complete:${activityId}`,
+      MATCHER_LOCK_TTL_SECONDS,
+      () => this.completeActivityLocked(activityId),
+      'Activity completion already in progress',
+    )
+  }
+
+  private async completeActivityLocked(activityId: string) {
+    const activity = await this.activities.findById(activityId)
+    if (!activity) throw new NotFoundException('Activity not found')
+    if (activity.status === 'COMPLETED') {
+      throw new ConflictException('Activity already completed')
+    }
+    if (activity.status !== 'MATCHED') {
+      throw new UnprocessableEntityException('Activity must be MATCHED before completion')
+    }
+
+    const completed = await this.assignments.completeActivityAssignments(activityId)
+    await this.activities.update(activityId, { status: 'COMPLETED' })
+
+    for (const assignment of completed) {
+      this.events.emit(DomainEvents.assignmentCompleted, {
+        userId: assignment.userId,
+        assignmentId: assignment.id,
+        sourceId: assignment.id,
+        title: 'Bạn đã hoàn thành nhiệm vụ',
+        body: 'Cảm ơn bạn đã tham gia! Điểm đóng góp đã được ghi nhận.',
+        linkUrl: '/member/impact',
+      })
+    }
+
+    return { activityId, completedCount: completed.length }
   }
 }

@@ -1,4 +1,5 @@
 import { ConflictException, UnprocessableEntityException } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Test } from '@nestjs/testing'
 import {
   ACTIVITIES_REPOSITORY,
@@ -33,6 +34,7 @@ describe('MatchingService overrideAssignment', () => {
       | 'createMany'
       | 'deleteByActivity'
       | 'updateManual'
+      | 'completeActivityAssignments'
     >
   >
 
@@ -47,6 +49,7 @@ describe('MatchingService overrideAssignment', () => {
       createMany: jest.fn(),
       deleteByActivity: jest.fn(),
       updateManual: jest.fn(),
+      completeActivityAssignments: jest.fn(),
     }
 
     const module = await Test.createTestingModule({
@@ -62,6 +65,7 @@ describe('MatchingService overrideAssignment', () => {
             withLock: jest.fn((_resource, _ttl, fn) => fn()),
           },
         },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile()
 

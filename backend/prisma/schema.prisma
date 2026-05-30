@@ -99,6 +99,11 @@ model User {
   registrations                 ActivityRegistration[]
   assignments                   Assignment[]
   Activity                      Activity[]
+  notifications                 Notification[]
+  pointsLedger                  PointsLedger[]
+  userBadges                    UserBadge[]
+  streak                        Streak?
+  galleryAlbums                 GalleryAlbum[]
 
   @@map("users")
 }
@@ -152,6 +157,7 @@ model Activity {
   tasks         Task[]
   registrations ActivityRegistration[]
   assignments   Assignment[]
+  galleryAlbums GalleryAlbum[]
 
   @@map("activities")
 }
@@ -258,4 +264,109 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  body      String?
+  linkUrl   String?   @map("link_url")
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead], name: "idx_notifications_user_read")
+  @@map("notifications")
+}
+
+model Badge {
+  id                String   @id @default(uuid())
+  code              String   @unique
+  name              String
+  description       String?
+  iconUrl           String?  @map("icon_url")
+  criteriaType      String   @map("criteria_type")
+  criteriaThreshold Int      @map("criteria_threshold")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  userBadges UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  badgeId   String   @map("badge_id")
+  awardedAt DateTime @default(now()) @map("awarded_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@index([userId], name: "idx_user_badges_user")
+  @@map("user_badges")
+}
+
+model PointsLedger {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  amount     Int
+  reason     String
+  sourceType String   @map("source_type")
+  sourceId   String?  @map("source_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([sourceType, sourceId, reason])
+  @@index([userId, createdAt], name: "idx_points_user_date")
+  @@map("points_ledger")
+}
+
+model Streak {
+  userId           String    @id @map("user_id")
+  currentStreak    Int       @default(0) @map("current_streak")
+  longestStreak    Int       @default(0) @map("longest_streak")
+  lastActivityDate DateTime? @map("last_activity_date") @db.Date
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("streaks")
+}
+
+model GalleryAlbum {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  coverImageUrl String?  @map("cover_image_url")
+  activityId    String?  @map("activity_id")
+  createdById   String   @map("created_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  activity  Activity?      @relation(fields: [activityId], references: [id])
+  createdBy User           @relation(fields: [createdById], references: [id])
+  photos    GalleryPhoto[]
+
+  @@map("gallery_albums")
+}
+
+model GalleryPhoto {
+  id        String   @id @default(uuid())
+  albumId   String   @map("album_id")
+  imageUrl  String   @map("image_url")
+  caption   String?
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  album GalleryAlbum @relation(fields: [albumId], references: [id])
+
+  @@index([albumId], name: "idx_gallery_album")
+  @@map("gallery_photos")
 }

@@ -28,6 +28,13 @@ export class MatchingController {
     return this.service.getAssignments(id)
   }
 
+  @Patch('admin/activities/:id/complete')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Complete activity and confirmed assignments (admin)' })
+  completeActivity(@Param('id') id: string) {
+    return this.service.completeActivity(id)
+  }
+
   @Get('member/activities/:id/assignments')
   @Roles('MEMBER', 'ADMIN')
   @ApiOperation({ summary: 'Get my assignment for activity (member)' })
