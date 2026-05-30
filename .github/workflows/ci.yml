@@ -37,10 +37,20 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       DATABASE_URL: postgresql://dsvtn_test:dsvtn_test@localhost:5432/dsvtn_test
       DIRECT_URL: postgresql://dsvtn_test:dsvtn_test@localhost:5432/dsvtn_test
+      REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-test-secret-that-is-at-least-32-characters-long
       JWT_EXPIRES_IN: 7d
       NODE_ENV: test
@@ -78,11 +88,11 @@ jobs:
         working-directory: backend
 
       - name: Unit tests
-        run: npm run test
+        run: npm run test:serial
         working-directory: backend
 
       - name: E2E tests
-        run: npm run test:e2e
+        run: npm run test:e2e:serial
         working-directory: backend
 
   frontend-ci:

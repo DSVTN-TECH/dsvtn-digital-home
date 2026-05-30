@@ -4,6 +4,32 @@ import type { Test as SupertestRequest } from 'supertest'
 
 let clientIpCounter = 0
 
+const E2E_RUN_ID_KEY = 'DSVTN_E2E_RUN_ID'
+
+function e2eRunId(): string {
+  const existing = process.env[E2E_RUN_ID_KEY]
+  if (existing) return existing
+  const created = `${process.pid}-${Date.now()}`
+  process.env[E2E_RUN_ID_KEY] = created
+  return created
+}
+
+function e2eCallsiteKey(): string {
+  const stack = new Error().stack ?? ''
+  return stack
+    .split('\n')
+    .find((line) => line.includes('.e2e-spec.ts'))
+    ?.trim() ?? 'unknown-suite'
+}
+
+function hashText(value: string): string {
+  let hash = 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
+  }
+  return hash.toString(36)
+}
+
 export interface AuthSession {
   cookies: string[]
   csrfToken: string
@@ -36,11 +62,9 @@ export async function loginSession(
 }
 
 export function e2eClientIp(): string {
-  const worker = Number(process.env.JEST_WORKER_ID ?? '1')
   clientIpCounter += 1
-  const block = Math.floor(clientIpCounter / 250) + 1
-  const host = (clientIpCounter % 250) + 1
-  return `198.51.${worker * 10 + block}.${host}`
+  const identity = hashText(`${e2eRunId()}:${process.env.JEST_WORKER_ID ?? '1'}:${e2eCallsiteKey()}:${clientIpCounter}`)
+  return `e2e-${identity}`
 }
 
 export async function loginAndChangePassword(
