@@ -9,8 +9,11 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
+import { RateLimit, RateLimitGuard } from '../../common/rate-limit'
+import { Idempotent, IdempotencyInterceptor } from '../../common/idempotency'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
@@ -26,6 +29,10 @@ export class VolunteerApplicationsController {
 
   @Post('public/volunteer-applications')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(RateLimitGuard)
+  @UseInterceptors(IdempotencyInterceptor)
+  @RateLimit({ scope: 'public:volunteer-applications', limit: 5, windowSeconds: 600, by: 'ip' })
+  @Idempotent({ scope: 'volunteer-applications' })
   @ApiOperation({ summary: 'Submit volunteer application (public)' })
   submit(@Body() dto: CreateApplicationDto) {
     return this.service.submit(dto)

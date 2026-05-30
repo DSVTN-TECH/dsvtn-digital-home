@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
+import { RateLimit, RateLimitGuard } from '../../common/rate-limit'
 import { CurrentUser } from './decorators/current-user.decorator'
 import {
   clearAuthCookies,
@@ -40,6 +41,8 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RateLimitGuard)
+  @RateLimit({ scope: 'auth:login', limit: 10, windowSeconds: 900, by: 'ip' })
   @ApiOperation({ summary: 'Login with email and password' })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.login(dto)

@@ -1,5 +1,17 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
+import { RateLimit, RateLimitGuard } from '../../common/rate-limit'
+import { Idempotent, IdempotencyInterceptor } from '../../common/idempotency'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
@@ -13,6 +25,10 @@ export class OrdersController {
   constructor(private readonly service: OrdersService) {}
 
   @Post('public/orders')
+  @UseGuards(RateLimitGuard)
+  @UseInterceptors(IdempotencyInterceptor)
+  @RateLimit({ scope: 'public:orders', limit: 10, windowSeconds: 600, by: 'ip' })
+  @Idempotent({ scope: 'orders' })
   @ApiOperation({ summary: 'Create order (public)' })
   create(@Body() dto: CreateOrderDto) {
     return this.service.create(dto)

@@ -10,6 +10,7 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   COOKIE_SECURE: z.enum(['true', 'false']).default('false'),
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
+  RATE_LIMIT_ENABLED: z.enum(['true', 'false']).default('true'),
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })

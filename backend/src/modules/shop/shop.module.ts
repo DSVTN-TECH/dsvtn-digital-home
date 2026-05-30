@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { EmailModule } from '../../common/email'
+import { LockModule } from '../../common/lock'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
 import { OrdersController } from './orders.controller'
 import { OrdersService } from './orders.service'
@@ -9,7 +10,7 @@ import { ProductsController } from './products.controller'
 import { ProductsService } from './products.service'
 
 @Module({
-  imports: [EmailModule],
+  imports: [EmailModule, LockModule],
   controllers: [ProductsController, OrdersController],
   providers: [
     ProductsService,

@@ -5,6 +5,7 @@ import {
   REGISTRATIONS_REPOSITORY,
   TASKS_REPOSITORY,
 } from '../../common/repository'
+import { LockService } from '../../common/lock'
 import { AssignmentsRepository } from './assignments.repository'
 import { ASSIGNMENTS_REPOSITORY, MatchingService } from './matching.service'
 
@@ -55,6 +56,12 @@ describe('MatchingService overrideAssignment', () => {
         { provide: TASKS_REPOSITORY, useValue: tasks },
         { provide: REGISTRATIONS_REPOSITORY, useValue: { findByActivity: jest.fn() } },
         { provide: ASSIGNMENTS_REPOSITORY, useValue: assignments },
+        {
+          provide: LockService,
+          useValue: {
+            withLock: jest.fn((_resource, _ttl, fn) => fn()),
+          },
+        },
       ],
     }).compile()
 

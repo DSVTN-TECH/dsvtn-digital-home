@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common'
 import { EmailStatus, Order } from '@prisma/client'
 import { EMAIL_PROVIDER, EmailProvider } from '../../common/email'
+import { LockService } from '../../common/lock'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
 import { CreateOrderDto } from './dto/create-order.dto'
 import { OrdersRepository } from './orders.repository'
@@ -35,6 +36,7 @@ export class OrdersService {
     @Inject(ORDERS_REPOSITORY) private readonly orders: OrdersRepository,
     @Inject(PRODUCTS_REPOSITORY) private readonly products: ProductsRepository,
     @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider,
+    private readonly lock: LockService,
   ) {}
 
   async create(dto: CreateOrderDto) {
@@ -75,6 +77,15 @@ export class OrdersService {
   }
 
   async updateStatus(id: string, newStatus: OrderStatus) {
+    return this.lock.withLock(
+      `order:${id}`,
+      30,
+      () => this.updateStatusLocked(id, newStatus),
+      'Order is being updated, try again',
+    )
+  }
+
+  private async updateStatusLocked(id: string, newStatus: OrderStatus) {
     const order = await this.orders.findById(id)
     if (!order) throw new NotFoundException('Order not found')
     if (!isAllowedOrderTransition(order.status, newStatus)) {

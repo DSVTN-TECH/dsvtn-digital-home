@@ -1,6 +1,7 @@
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { EMAIL_PROVIDER, EmailProvider } from '../../common/email'
+import { LockService } from '../../common/lock'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
 import { OrdersService, isAllowedOrderTransition } from './orders.service'
 
@@ -53,6 +54,12 @@ describe('OrdersService', () => {
         { provide: PRODUCTS_REPOSITORY, useValue: productsRepo },
         { provide: ORDERS_REPOSITORY, useValue: ordersRepo },
         { provide: EMAIL_PROVIDER, useValue: emailProvider },
+        {
+          provide: LockService,
+          useValue: {
+            withLock: jest.fn((_resource, _ttl, fn) => fn()),
+          },
+        },
       ],
     }).compile()
     service = module.get(OrdersService)

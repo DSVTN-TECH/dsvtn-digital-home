@@ -11,6 +11,7 @@ import {
   REGISTRATIONS_REPOSITORY,
   TASKS_REPOSITORY,
 } from '../../common/repository'
+import { LockService } from '../../common/lock'
 import { ActivitiesRepository } from '../activities/activities.repository'
 import { TasksRepository } from '../activities/tasks.repository'
 import { RegistrationsRepository } from '../activities/registrations.repository'
@@ -20,6 +21,8 @@ import { runGreedyMatcher, MatcherResult } from './matcher'
 const ASSIGNMENTS_REPOSITORY = Symbol('ASSIGNMENTS_REPOSITORY')
 export { ASSIGNMENTS_REPOSITORY }
 
+const MATCHER_LOCK_TTL_SECONDS = 120
+
 @Injectable()
 export class MatchingService {
   constructor(
@@ -27,9 +30,21 @@ export class MatchingService {
     @Inject(TASKS_REPOSITORY) private readonly tasks: TasksRepository,
     @Inject(REGISTRATIONS_REPOSITORY) private readonly registrations: RegistrationsRepository,
     @Inject(ASSIGNMENTS_REPOSITORY) private readonly assignments: AssignmentsRepository,
+    private readonly lock: LockService,
   ) {}
 
   async runMatcher(activityId: string): Promise<MatcherResult & { activityId: string }> {
+    return this.lock.withLock(
+      `matcher:${activityId}`,
+      MATCHER_LOCK_TTL_SECONDS,
+      () => this.runMatcherLocked(activityId),
+      'Matcher is already running for this activity',
+    )
+  }
+
+  private async runMatcherLocked(
+    activityId: string,
+  ): Promise<MatcherResult & { activityId: string }> {
     const activity = await this.activities.findById(activityId)
     if (!activity) throw new NotFoundException('Activity not found')
     if (activity.status === 'MATCHED') {
