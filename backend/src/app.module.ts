@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { PrismaModule } from './prisma/prisma.module'
 import { ConfigModule } from './config/config.module'
+import { RedisModule } from './common/redis'
 import { HealthModule } from './health/health.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { UsersModule } from './modules/users/users.module'
@@ -13,6 +14,7 @@ import { ShopModule } from './modules/shop/shop.module'
 @Module({
   imports: [
     ConfigModule,
+    RedisModule,
     PrismaModule,
     HealthModule,
     AuthModule,

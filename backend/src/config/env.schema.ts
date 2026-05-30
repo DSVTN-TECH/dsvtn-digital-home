@@ -9,6 +9,7 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().optional(),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   COOKIE_SECURE: z.enum(['true', 'false']).default('false'),
+  REDIS_URL: z.string().url().default('redis://localhost:6379'),
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })
