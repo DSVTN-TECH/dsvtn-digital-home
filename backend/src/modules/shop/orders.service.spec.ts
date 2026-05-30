@@ -1,4 +1,5 @@
 import { NotFoundException, UnprocessableEntityException } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Test } from '@nestjs/testing'
 import { EMAIL_PROVIDER, EmailProvider } from '../../common/email'
 import { LockService } from '../../common/lock'
@@ -60,6 +61,7 @@ describe('OrdersService', () => {
             withLock: jest.fn((_resource, _ttl, fn) => fn()),
           },
         },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile()
     service = module.get(OrdersService)

@@ -17,6 +17,7 @@ interface ErrorResponseBody {
   code: string
   path: string
   requestId: string
+  details?: Record<string, unknown>
 }
 
 @Catch()
@@ -35,6 +36,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const httpMessage = this.extractMessage(exception)
     const code = this.extractCode(exception) ?? this.mapStatusToCode(status)
     const error = HttpStatus[status] ?? 'Internal Server Error'
+    const details = this.extractDetails(exception)
 
     const body: ErrorResponseBody = {
       timestamp: new Date().toISOString(),
@@ -45,6 +47,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       requestId,
     }
+
+    if (details) body.details = details
 
     if (status >= 500) {
       this.logger.error(
@@ -81,6 +85,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (typeof res !== 'object' || res === null) return null
     const code = (res as Record<string, unknown>).code
     return typeof code === 'string' ? code : null
+  }
+
+  private extractDetails(exception: unknown): Record<string, unknown> | undefined {
+    if (!(exception instanceof HttpException)) return undefined
+    const res = exception.getResponse()
+    if (typeof res !== 'object' || res === null) return undefined
+    const details = (res as Record<string, unknown>).details
+    if (typeof details === 'object' && details !== null) {
+      return details as Record<string, unknown>
+    }
+    return undefined
   }
 
   private mapStatusToCode(status: number): string {

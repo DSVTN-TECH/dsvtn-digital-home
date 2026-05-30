@@ -23,6 +23,7 @@ interface RoleShellProps {
   allow: UserRole[]
   showBell?: boolean
   notificationsHref?: string
+  header?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -36,6 +37,7 @@ export function RoleShell({
   allow,
   showBell = false,
   notificationsHref,
+  header,
   children,
 }: RoleShellProps) {
   const router = useRouter()
@@ -101,9 +103,13 @@ export function RoleShell({
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-6">
-          {showBell ? <NotificationBell href={notificationsHref} /> : null}
-        </header>
+        {header ? (
+          header
+        ) : (
+          <header className="flex h-14 items-center justify-end gap-2 border-b bg-background px-6">
+            {showBell ? <NotificationBell href={notificationsHref} /> : null}
+          </header>
+        )}
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>

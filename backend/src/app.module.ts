@@ -18,6 +18,9 @@ import { BadgesModule } from './modules/badges/badges.module'
 import { ProfileModule } from './modules/profile/profile.module'
 import { GamificationModule } from './modules/gamification/gamification.module'
 import { GalleryModule } from './modules/gallery/gallery.module'
+import { ReportsModule } from './modules/reports/reports.module'
+import { CampaignsModule } from './modules/campaigns/campaigns.module'
+import { InvitesModule } from './modules/invites/invites.module'
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { GalleryModule } from './modules/gallery/gallery.module'
     ProfileModule,
     GamificationModule,
     GalleryModule,
+    ReportsModule,
+    CampaignsModule,
+    InvitesModule,
   ],
 })
 export class AppModule {}

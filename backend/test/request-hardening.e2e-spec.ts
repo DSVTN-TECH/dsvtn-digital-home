@@ -7,6 +7,7 @@ import { csrfMiddleware } from '../src/common/security/csrf.middleware'
 
 describe('Request hardening (e2e)', () => {
   let app: INestApplication
+  const previousRateLimitEnabled = process.env.RATE_LIMIT_ENABLED
 
   beforeAll(async () => {
     process.env.RATE_LIMIT_ENABLED = 'true'
@@ -27,6 +28,11 @@ describe('Request hardening (e2e)', () => {
 
   afterAll(async () => {
     await app.close()
+    if (previousRateLimitEnabled === undefined) {
+      delete process.env.RATE_LIMIT_ENABLED
+    } else {
+      process.env.RATE_LIMIT_ENABLED = previousRateLimitEnabled
+    }
   })
 
   describe('rate limit', () => {

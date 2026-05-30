@@ -5,7 +5,7 @@ import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { csrfMiddleware } from '../src/common/security/csrf.middleware'
 import { PrismaService } from '../src/prisma/prisma.service'
-import { sessionFromResponse } from './auth-e2e-helpers'
+import { e2eClientIp, sessionFromResponse } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -46,6 +46,7 @@ describe('Auth + RBAC + Users (e2e)', () => {
     it('sets httpOnly cookies + returns user on valid credentials', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('X-Forwarded-For', e2eClientIp())
         .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
         .expect(200)
 
@@ -80,6 +81,7 @@ describe('Auth + RBAC + Users (e2e)', () => {
     it('returns 401 on wrong password', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('X-Forwarded-For', e2eClientIp())
         .send({ email: ADMIN_EMAIL, password: 'wrong-password' })
         .expect(401)
 
@@ -88,7 +90,11 @@ describe('Auth + RBAC + Users (e2e)', () => {
     })
 
     it('returns 400 on missing body fields', async () => {
-      await request(app.getHttpServer()).post('/api/auth/login').send({}).expect(400)
+      await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .set('X-Forwarded-For', e2eClientIp())
+        .send({})
+        .expect(400)
     })
   })
 
@@ -147,6 +153,7 @@ describe('Auth + RBAC + Users (e2e)', () => {
     it('new member can login with temporaryPassword', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/login')
+        .set('X-Forwarded-For', e2eClientIp())
         .send({ email: NEW_USER_EMAIL, password: memberTempPassword })
         .expect(200)
 

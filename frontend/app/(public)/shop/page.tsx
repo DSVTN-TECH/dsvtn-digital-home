@@ -1,16 +1,24 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { getShopDataSource, type Product, type CreateOrderResult } from '@/lib/datasource/shop'
-import { OrderForm, type CartItem } from '@/components/forms/OrderForm'
+import { getShopDataSource, type CreateOrderResult, type Product } from '@/lib/datasource/shop'
+import { OrderForm } from '@/components/forms/OrderForm'
+import { CartDrawer } from '@/components/shop/CartDrawer'
+import { useShopCart } from '@/components/shop/useShopCart'
+
+function formatPrice(cents: number): string {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cents)
+}
 
 export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [cart, setCart] = useState<CartItem[]>([])
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
   const [orderResult, setOrderResult] = useState<CreateOrderResult | null>(null)
+  const { cart, addToCart, updateQuantity, removeFromCart, clearCart } = useShopCart()
 
   useEffect(() => {
     getShopDataSource()
@@ -19,27 +27,13 @@ export default function ShopPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const addToCart = useCallback((product: Product) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id)
-      if (existing) {
-        return prev.map((i) =>
-          i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i,
-        )
-      }
-      return [...prev, { product, quantity: 1 }]
-    })
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('checkout') === '1') {
+      setShowCheckout(true)
+    }
   }, [])
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    setCart((prev) =>
-      prev.map((i) => (i.product.id === productId ? { ...i, quantity: Math.max(1, quantity) } : i)),
-    )
-  }, [])
-
-  const removeFromCart = useCallback((productId: string) => {
-    setCart((prev) => prev.filter((i) => i.product.id !== productId))
-  }, [])
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
 
   if (orderResult) {
     return (
@@ -53,7 +47,7 @@ export default function ShopPage() {
             variant="outline"
             onClick={() => {
               setOrderResult(null)
-              setCart([])
+              clearCart()
               setShowCheckout(false)
             }}
           >
@@ -85,11 +79,9 @@ export default function ShopPage() {
     <main className="mx-auto max-w-4xl px-4 py-12">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Shop ĐSVTN</h1>
-        {cart.length > 0 && (
-          <Button onClick={() => setShowCheckout(true)}>
-            Giỏ hàng ({cart.reduce((s, i) => s + i.quantity, 0)})
-          </Button>
-        )}
+        <Button variant={cartCount > 0 ? 'default' : 'outline'} onClick={() => setDrawerOpen(true)}>
+          Giỏ hàng ({cartCount})
+        </Button>
       </div>
 
       {loading ? (
@@ -99,24 +91,40 @@ export default function ShopPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
-            <div key={product.id} className="rounded-lg border bg-card p-4 shadow-sm">
-              <h2 className="text-base font-medium">{product.name}</h2>
-              {product.description && (
-                <p className="mt-1 text-sm text-muted-foreground">{product.description}</p>
-              )}
+            <div key={product.id} className="flex flex-col rounded-lg border bg-card p-4 shadow-sm">
+              <Link href={`/shop/${product.id}`} className="text-base font-medium hover:underline">
+                {product.name}
+              </Link>
+              {product.description ? (
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                  {product.description}
+                </p>
+              ) : null}
               <p className="mt-2 text-sm font-semibold">{formatPrice(product.priceCents)}</p>
-              <Button size="sm" className="mt-3 w-full" onClick={() => addToCart(product)}>
-                Thêm vào giỏ
-              </Button>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm" className="flex-1" onClick={() => addToCart(product)}>
+                  Thêm vào giỏ
+                </Button>
+                <Button size="sm" variant="outline" asChild>
+                  <Link href={`/shop/${product.id}`}>Chi tiết</Link>
+                </Button>
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      <CartDrawer
+        open={drawerOpen}
+        cart={cart}
+        onClose={() => setDrawerOpen(false)}
+        onCheckout={() => {
+          setDrawerOpen(false)
+          setShowCheckout(true)
+        }}
+        onUpdateQuantity={updateQuantity}
+        onRemove={removeFromCart}
+      />
     </main>
   )
-}
-
-function formatPrice(cents: number): string {
-  const vnd = Math.round(cents / 100)
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(vnd)
 }

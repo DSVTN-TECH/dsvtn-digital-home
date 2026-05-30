@@ -8,6 +8,7 @@ export type { ProfileDataSource } from './profile.datasource'
 export type { GamificationDataSource } from './gamification.datasource'
 export type { GalleryDataSource } from './gallery.datasource'
 export type { FeedDataSource, FeedItem } from './feed.datasource'
+export type { ReportsDataSource, ReportsDashboard, ReportsOverview } from './reports'
 export {
   getActivitiesDataSource,
   getVolunteerDataSource,

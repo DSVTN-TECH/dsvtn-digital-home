@@ -31,6 +31,19 @@ export function MarkdownView({ content }: MarkdownViewProps) {
         strong: ({ children }) => (
           <strong className="font-semibold text-foreground">{children}</strong>
         ),
+        blockquote: ({ children }) => (
+          <blockquote className="mt-4 border-l-4 pl-4 text-muted-foreground">{children}</blockquote>
+        ),
+        code: ({ children }) => (
+          <code className="rounded bg-muted px-1 py-0.5 font-mono text-sm">{children}</code>
+        ),
+        table: ({ children }) => (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full border-collapse text-sm">{children}</table>
+          </div>
+        ),
+        th: ({ children }) => <th className="border px-2 py-1 text-left">{children}</th>,
+        td: ({ children }) => <td className="border px-2 py-1">{children}</td>,
       }}
     >
       {content}

@@ -2,6 +2,8 @@ import { INestApplication } from '@nestjs/common'
 import request = require('supertest')
 import type { Test as SupertestRequest } from 'supertest'
 
+let clientIpCounter = 0
+
 export interface AuthSession {
   cookies: string[]
   csrfToken: string
@@ -27,9 +29,18 @@ export async function loginSession(
 ): Promise<AuthSession> {
   const res = await request(app.getHttpServer())
     .post('/api/auth/login')
+    .set('X-Forwarded-For', e2eClientIp())
     .send({ email, password })
     .expect(200)
   return sessionFromResponse(res)
+}
+
+export function e2eClientIp(): string {
+  const worker = Number(process.env.JEST_WORKER_ID ?? '1')
+  clientIpCounter += 1
+  const block = Math.floor(clientIpCounter / 250) + 1
+  const host = (clientIpCounter % 250) + 1
+  return `198.51.${worker * 10 + block}.${host}`
 }
 
 export async function loginAndChangePassword(

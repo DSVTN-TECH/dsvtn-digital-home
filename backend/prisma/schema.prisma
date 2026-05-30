@@ -80,6 +80,19 @@ enum EmailStatus {
   FAILED
 }
 
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 // ─── Models ───────────────────────────────────────────────────
 
 model User {
@@ -104,6 +117,7 @@ model User {
   userBadges                    UserBadge[]
   streak                        Streak?
   galleryAlbums                 GalleryAlbum[]
+  invitesSent                   Invite[]               @relation("InvitedBy")
 
   @@map("users")
 }
@@ -245,11 +259,14 @@ model Order {
   paymentProofUrl String      @map("payment_proof_url")
   status          OrderStatus @default(PENDING_PAYMENT_REVIEW)
   emailStatus     EmailStatus @default(NOT_CONFIGURED) @map("email_status")
+  campaignId      String?     @map("campaign_id")
   createdAt       DateTime    @default(now()) @map("created_at")
 
-  items OrderItem[]
+  items    OrderItem[]
+  campaign Campaign?   @relation(fields: [campaignId], references: [id])
 
   @@index([status], name: "idx_orders_status")
+  @@index([campaignId], name: "idx_orders_campaign")
   @@map("orders")
 }
 
@@ -369,4 +386,40 @@ model GalleryPhoto {
 
   @@index([albumId], name: "idx_gallery_album")
   @@map("gallery_photos")
+}
+
+model Campaign {
+  id          String         @id @default(uuid())
+  title         String
+  description   String?
+  coverImageUrl String?        @map("cover_image_url")
+  goalCents     Int            @map("goal_cents")
+  startDate   DateTime       @map("start_date") @db.Date
+  endDate     DateTime       @map("end_date") @db.Date
+  status      CampaignStatus @default(DRAFT)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  orders Order[]
+
+  @@index([status], name: "idx_campaigns_status")
+  @@map("campaigns")
+}
+
+model Invite {
+  id         String       @id @default(uuid())
+  email      String
+  role       Role
+  tokenHash  String       @map("token_hash")
+  status     InviteStatus @default(PENDING)
+  invitedById String      @map("invited_by")
+  expiresAt  DateTime     @map("expires_at")
+  acceptedAt DateTime?    @map("accepted_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  invitedBy User @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@index([email, status], name: "idx_invites_email_status")
+  @@index([tokenHash], name: "idx_invites_token_hash")
+  @@map("invites")
 }

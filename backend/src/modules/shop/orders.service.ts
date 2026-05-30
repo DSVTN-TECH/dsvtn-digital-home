@@ -5,8 +5,10 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { EmailStatus, Order } from '@prisma/client'
 import { EMAIL_PROVIDER, EmailProvider } from '../../common/email'
+import { DomainEvents } from '../../common/events/domain-events'
 import { LockService } from '../../common/lock'
 import { ORDERS_REPOSITORY, PRODUCTS_REPOSITORY } from '../../common/repository'
 import { CreateOrderDto } from './dto/create-order.dto'
@@ -37,6 +39,7 @@ export class OrdersService {
     @Inject(PRODUCTS_REPOSITORY) private readonly products: ProductsRepository,
     @Inject(EMAIL_PROVIDER) private readonly emailProvider: EmailProvider,
     private readonly lock: LockService,
+    private readonly events: EventEmitter2,
   ) {}
 
   async create(dto: CreateOrderDto) {
@@ -58,6 +61,7 @@ export class OrdersService {
       customerPhone: dto.customerPhone,
       customerAddress: dto.customerAddress,
       paymentProofUrl: dto.paymentProofUrl,
+      campaignId: dto.campaignId ?? null,
       items: itemsWithPrice,
     })
 
@@ -93,7 +97,18 @@ export class OrdersService {
         `Cannot transition order from ${order.status} to ${newStatus}`,
       )
     }
-    return this.orders.updateStatus(id, newStatus)
+    const updated = await this.orders.updateStatus(id, newStatus)
+
+    this.events.emit(DomainEvents.orderStatusChanged, {
+      sourceId: `${updated.id}:${updated.status}`,
+      orderId: updated.id,
+      status: updated.status,
+      title: 'Cập nhật đơn hàng gây quỹ',
+      body: `Đơn hàng của bạn chuyển sang trạng thái ${updated.status}.`,
+      linkUrl: '/shop',
+    })
+
+    return updated
   }
 
   private async sendOrderConfirmationEmail(): Promise<EmailStatus> {

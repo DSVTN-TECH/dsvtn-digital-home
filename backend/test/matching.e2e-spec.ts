@@ -115,6 +115,9 @@ describe('Matching (e2e)', () => {
     await prisma.activityRegistration.deleteMany({ where: { activityId } })
     await prisma.task.deleteMany({ where: { activityId } })
     await prisma.activity.deleteMany({ where: { id: activityId } })
+    await prisma.notification.deleteMany({
+      where: { user: { email: { in: [MEMBER_EMAIL, SECOND_MEMBER_EMAIL] } } },
+    })
     await prisma.user.deleteMany({ where: { email: { in: [MEMBER_EMAIL, SECOND_MEMBER_EMAIL] } } })
     await app.close()
   })

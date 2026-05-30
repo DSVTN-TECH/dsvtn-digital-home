@@ -5,6 +5,7 @@ export type CreateOrderData = {
   customerPhone: string
   customerAddress: string
   paymentProofUrl: string
+  campaignId?: string | null
   items: { productId: string; quantity: number; unitPriceCents: number }[]
 }
 

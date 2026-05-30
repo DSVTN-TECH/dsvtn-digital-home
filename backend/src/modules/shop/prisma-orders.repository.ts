@@ -27,6 +27,7 @@ export class PrismaOrdersRepository extends OrdersRepository {
         customerPhone: data.customerPhone,
         customerAddress: data.customerAddress,
         paymentProofUrl: data.paymentProofUrl,
+        campaignId: data.campaignId ?? null,
         items: { createMany: { data: data.items } },
       },
       include: { items: true },

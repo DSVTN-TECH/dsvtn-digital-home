@@ -62,6 +62,7 @@ export const ALLOWED_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 export interface ShopDataSource {
   listProducts(): Promise<Product[]>
+  findProduct(id: string): Promise<Product | null>
   listAllProducts(): Promise<Product[]>
   createProduct(input: ProductFormInput): Promise<Product>
   updateProduct(id: string, input: Partial<ProductFormInput>): Promise<Product>
@@ -73,6 +74,14 @@ export interface ShopDataSource {
 export class ApiShopDataSource implements ShopDataSource {
   async listProducts(): Promise<Product[]> {
     return apiFetch<Product[]>('/public/products')
+  }
+
+  async findProduct(id: string): Promise<Product | null> {
+    try {
+      return await apiFetch<Product>(`/public/products/${encodeURIComponent(id)}`)
+    } catch {
+      return null
+    }
   }
 
   async listAllProducts(): Promise<Product[]> {
@@ -127,6 +136,12 @@ const mockOrderStore: AdminOrder[] = [...mockOrders]
 export class MockShopDataSource implements ShopDataSource {
   async listProducts(): Promise<Product[]> {
     return Promise.resolve(mockProductStore.filter((p) => p.status === 'ACTIVE'))
+  }
+
+  async findProduct(id: string): Promise<Product | null> {
+    return Promise.resolve(
+      mockProductStore.find((p) => p.id === id && p.status === 'ACTIVE') ?? null,
+    )
   }
 
   async listAllProducts(): Promise<Product[]> {

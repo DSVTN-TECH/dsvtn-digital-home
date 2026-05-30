@@ -5,7 +5,7 @@ import { AppModule } from '../src/app.module'
 import { AllExceptionsFilter } from '../src/common/filters'
 import { csrfMiddleware } from '../src/common/security/csrf.middleware'
 import { PrismaService } from '../src/prisma/prisma.service'
-import { sessionFromResponse, withAuth, type AuthSession } from './auth-e2e-helpers'
+import { e2eClientIp, sessionFromResponse, withAuth, type AuthSession } from './auth-e2e-helpers'
 
 const ADMIN_EMAIL = 'admin@dsvtn.vn'
 const ADMIN_PASSWORD = 'changeme'
@@ -30,6 +30,7 @@ describe('Member Zone (e2e)', () => {
 
     const login = await request(app.getHttpServer())
       .post('/api/auth/login')
+      .set('X-Forwarded-For', e2eClientIp())
       .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
       .expect(200)
     admin = sessionFromResponse(login)

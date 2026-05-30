@@ -5,6 +5,7 @@ import {
   IsArray,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -49,6 +50,11 @@ export class CreateOrderDto {
   @Matches(/^https:\/\//, { message: 'paymentProofUrl must start with https://' })
   @MaxLength(500)
   paymentProofUrl!: string
+
+  @ApiProperty({ example: 'uuid-campaign-1', required: false })
+  @IsUUID()
+  @IsOptional()
+  campaignId?: string
 
   @ApiProperty({ type: [OrderItemDto] })
   @IsArray()

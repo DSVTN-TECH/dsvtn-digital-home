@@ -29,11 +29,6 @@ describe('Queue-backed domain events (e2e)', () => {
       delivered.push(payload)
     })
 
-    const jobId = `article-published:e2e:${Date.now()}`
-    events.on(DomainEvents.articlePublished, (payload: NotificationEventPayload) => {
-      void queue.enqueue(QUEUE_NAME.notifications, payload, { jobId })
-    })
-
     events.emit(DomainEvents.articlePublished, {
       userIds: ['user-1'],
       title: 'Bài viết mới',

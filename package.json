@@ -6,7 +6,9 @@
     "prepare": "husky",
     "lint:all": "cd backend && npm run lint && cd ../frontend && npm run lint",
     "format:all": "cd backend && npm run format && cd ../frontend && npm run format",
-    "typecheck:all": "cd backend && npm run typecheck && cd ../frontend && npm run typecheck"
+    "typecheck:all": "cd backend && npm run typecheck && cd ../frontend && npm run typecheck",
+    "test:backend:serial": "cd backend && npm run test:serial",
+    "test:e2e:serial": "cd backend && npm run test:e2e:serial"
   },
   "devDependencies": {
     "husky": "9.1.7",
