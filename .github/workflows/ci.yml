@@ -87,6 +87,10 @@ jobs:
         run: npx prisma migrate deploy
         working-directory: backend
 
+      - name: Seed test database
+        run: npx prisma db seed
+        working-directory: backend
+
       - name: Unit tests
         run: npm run test:serial
         working-directory: backend
