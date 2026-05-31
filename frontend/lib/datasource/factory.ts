@@ -119,3 +119,76 @@ export function getFeedDataSource(): FeedDataSource {
   }
   return feedDataSource
 }
+
+// ── Domain getters consolidated from previously-flat files ────────────────────
+// Pattern: Strategy (interface) + Factory (env-based dispatch). Singleton state
+// lives only here so each domain has exactly one source of dispatch.
+
+import type { ShopDataSource } from './shop.datasource'
+import { ApiShopDataSource } from './shop.api'
+import { MockShopDataSource } from './shop.mock'
+import type { ArticlesDataSource } from './articles.datasource'
+import { ApiArticlesDataSource } from './articles.api'
+import { MockArticlesDataSource } from './articles.mock'
+import type { CampaignsDataSource } from './campaigns.datasource'
+import { ApiCampaignsDataSource } from './campaigns.api'
+import { MockCampaignsDataSource } from './campaigns.mock'
+import type { ReportsDataSource } from './reports.datasource'
+import { ApiReportsDataSource } from './reports.api'
+import { MockReportsDataSource } from './reports.mock'
+import type { InvitesDataSource } from './invites.datasource'
+import { ApiInvitesDataSource } from './invites.api'
+import { MockInvitesDataSource } from './invites.mock'
+import type { AuthDataSource } from './auth.datasource'
+import { ApiAuthDataSource } from './auth.api'
+import { MockAuthDataSource } from './auth.mock'
+
+let shopDataSource: ShopDataSource | null = null
+let articlesDataSource: ArticlesDataSource | null = null
+let campaignsDataSource: CampaignsDataSource | null = null
+let reportsDataSource: ReportsDataSource | null = null
+let invitesDataSource: InvitesDataSource | null = null
+let authDataSource: AuthDataSource | null = null
+
+export function getShopDataSource(): ShopDataSource {
+  if (!shopDataSource) {
+    shopDataSource = mode === 'api' ? new ApiShopDataSource() : new MockShopDataSource()
+  }
+  return shopDataSource
+}
+
+export function getArticlesDataSource(): ArticlesDataSource {
+  if (!articlesDataSource) {
+    articlesDataSource = mode === 'api' ? new ApiArticlesDataSource() : new MockArticlesDataSource()
+  }
+  return articlesDataSource
+}
+
+export function getCampaignsDataSource(): CampaignsDataSource {
+  if (!campaignsDataSource) {
+    campaignsDataSource =
+      mode === 'api' ? new ApiCampaignsDataSource() : new MockCampaignsDataSource()
+  }
+  return campaignsDataSource
+}
+
+export function getReportsDataSource(): ReportsDataSource {
+  if (!reportsDataSource) {
+    reportsDataSource = mode === 'api' ? new ApiReportsDataSource() : new MockReportsDataSource()
+  }
+  return reportsDataSource
+}
+
+export function getInvitesDataSource(): InvitesDataSource {
+  if (!invitesDataSource) {
+    invitesDataSource = mode === 'api' ? new ApiInvitesDataSource() : new MockInvitesDataSource()
+  }
+  return invitesDataSource
+}
+
+export function getAuthDataSource(): AuthDataSource {
+  if (!authDataSource) {
+    authDataSource = mode === 'api' ? new ApiAuthDataSource() : new MockAuthDataSource()
+  }
+  return authDataSource
+}

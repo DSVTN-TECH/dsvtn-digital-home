@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { apiFetch } from '@/lib/api'
+import { getAuthDataSource } from '@/lib/datasource'
 import type { AuthUser, UserRole } from '@/types/api'
 
 export function useAuth() {
@@ -10,9 +10,10 @@ export function useAuth() {
 
   useEffect(() => {
     let cancelled = false
-    apiFetch<{ user: AuthUser }>('/auth/me')
-      .then((response) => {
-        if (!cancelled) setUser(response.user)
+    getAuthDataSource()
+      .me()
+      .then((u) => {
+        if (!cancelled) setUser(u)
       })
       .catch(() => {
         if (!cancelled) setUser(null)

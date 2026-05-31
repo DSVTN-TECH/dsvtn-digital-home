@@ -4,9 +4,12 @@ import { useEffect, useState } from 'react'
 import { getMemberActivitiesDataSource, getMemberAssignmentsDataSource } from '@/lib/datasource'
 import type { MemberAssignment } from '@/lib/datasource/assignments.datasource'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
+import { EmptyState, ErrorState, LoadingState } from '@/components/shared/PageStates'
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -17,85 +20,123 @@ interface AssignmentRow extends MemberAssignment {
   activityTitle: string
 }
 
+const statusLabels: Record<MemberAssignment['status'], string> = {
+  PROPOSED: 'Đề xuất',
+  CONFIRMED: 'Đã xác nhận',
+  COMPLETED: 'Hoàn thành',
+  CANCELLED: 'Đã hủy',
+}
+
+const sourceLabels: Record<MemberAssignment['source'], string> = {
+  MATCHER: 'Matcher',
+  MANUAL: 'Thủ công',
+}
+
+function statusTone(
+  status: MemberAssignment['status'],
+): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (status === 'CONFIRMED' || status === 'COMPLETED') return 'success'
+  if (status === 'CANCELLED') return 'danger'
+  if (status === 'PROPOSED') return 'warning'
+  return 'neutral'
+}
+
 export default function MemberAssignmentsPage() {
   const [rows, setRows] = useState<AssignmentRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      setError(null)
+  function load() {
+    setStatus('loading')
+    setError(null)
+    async function run() {
       try {
         const activitiesDs = getMemberActivitiesDataSource()
         const assignmentsDs = getMemberAssignmentsDataSource()
         const activities = await activitiesDs.listOpen()
-
         const collected: AssignmentRow[] = []
         for (const activity of activities) {
           const assignments = await assignmentsDs.listMyAssignments(activity.id)
-          for (const a of assignments) {
-            collected.push({ ...a, activityTitle: activity.title })
-          }
+          for (const a of assignments) collected.push({ ...a, activityTitle: activity.title })
         }
         setRows(collected)
+        setStatus('ready')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Tải phân công thất bại')
-      } finally {
-        setLoading(false)
+        setStatus('error')
       }
     }
+    void run()
+  }
+
+  useEffect(() => {
     load()
   }, [])
 
-  function statusVariant(status: string): 'default' | 'secondary' | 'outline' | 'destructive' {
-    if (status === 'CONFIRMED' || status === 'COMPLETED') return 'default'
-    if (status === 'CANCELLED') return 'destructive'
-    return 'secondary'
-  }
+  const confirmedCount = rows.filter(
+    (r) => r.status === 'CONFIRMED' || r.status === 'COMPLETED',
+  ).length
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Phân công của tôi</h1>
+      <div>
+        <p className="svtn-eyebrow">Member Zone</p>
+        <h1 className="text-h1">Phân công của tôi</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Các nhiệm vụ bạn được matcher hoặc admin phân công.
+        </p>
+      </div>
 
-      {error && (
-        <div
-          className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          role="alert"
-        >
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <p className="text-muted-foreground">Đang tải...</p>
+      {status === 'loading' ? (
+        <LoadingState />
+      ) : status === 'error' ? (
+        <ErrorState
+          title="Không thể tải phân công"
+          description={error ?? undefined}
+          onRetry={load}
+        />
       ) : rows.length === 0 ? (
-        <p className="text-muted-foreground">Bạn chưa được phân công vào task nào.</p>
+        <EmptyState
+          title="Chưa có phân công"
+          description="Bạn chưa được phân công vào nhiệm vụ nào."
+        />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Hoạt động</TableHead>
-              <TableHead>Task ID</TableHead>
-              <TableHead>Nguồn</TableHead>
-              <TableHead>Trạng thái</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium">{r.activityTitle}</TableCell>
-                <TableCell className="font-mono text-xs">{r.taskId.slice(0, 8)}...</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{r.source}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <>
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            {rows.length} phân công · {confirmedCount} đã xác nhận
+          </p>
+          <Card variant="bento" className="p-0">
+            <Table>
+              <TableCaption>Danh sách nhiệm vụ được phân công cho thành viên.</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Hoạt động</TableHead>
+                  <TableHead>Mã đầu việc</TableHead>
+                  <TableHead>Nguồn</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium text-foreground">{r.activityTitle}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {r.taskId.slice(0, 8)}…
+                    </TableCell>
+                    <TableCell>
+                      <Badge tone={r.source === 'MANUAL' ? 'info' : 'primary'}>
+                        {sourceLabels[r.source]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge tone={statusTone(r.status)}>{statusLabels[r.status]}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
       )}
     </div>
   )

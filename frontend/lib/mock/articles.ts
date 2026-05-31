@@ -1,4 +1,4 @@
-import type { Article } from '@/lib/datasource/articles'
+import type { Article } from '@/lib/datasource/articles.datasource'
 
 export const mockArticles: Article[] = [
   {

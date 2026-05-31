@@ -1,7 +1,50 @@
 import type { MatchingDataSource, MatcherRunResult, SavedAssignment } from './matching.datasource'
 
-let lastRun: MatcherRunResult | null = null
-let savedAssignments: SavedAssignment[] = []
+const primaryActivityId = '00000000-0000-0000-0000-000000000001'
+
+let lastRun: MatcherRunResult | null = {
+  activityId: primaryActivityId,
+  assignments: [
+    { userId: 'mock-user-1', taskId: 'mock-task-1', source: 'MATCHER' },
+    { userId: 'mock-user-2', taskId: 'mock-task-1', source: 'MATCHER' },
+    { userId: 'mock-user-3', taskId: 'mock-task-2', source: 'MATCHER' },
+  ],
+  waitlist: ['mock-user-4'],
+  unfilledTasks: [
+    { taskId: 'mock-task-1', remainingSlots: 3 },
+    { taskId: 'mock-task-2', remainingSlots: 3 },
+    { taskId: 'mock-task-3', remainingSlots: 3 },
+  ],
+}
+let savedAssignments: SavedAssignment[] = [
+  {
+    id: 'mock-assign-1',
+    activityId: primaryActivityId,
+    taskId: 'mock-task-1',
+    userId: 'mock-user-1',
+    source: 'MATCHER',
+    status: 'PROPOSED',
+    createdAt: '2026-05-20T08:00:00.000Z',
+  },
+  {
+    id: 'mock-assign-2',
+    activityId: primaryActivityId,
+    taskId: 'mock-task-1',
+    userId: 'mock-user-2',
+    source: 'MATCHER',
+    status: 'CONFIRMED',
+    createdAt: '2026-05-20T08:05:00.000Z',
+  },
+  {
+    id: 'mock-assign-3',
+    activityId: primaryActivityId,
+    taskId: 'mock-task-2',
+    userId: 'mock-user-3',
+    source: 'MANUAL',
+    status: 'PROPOSED',
+    createdAt: '2026-05-20T08:10:00.000Z',
+  },
+]
 
 export class MockMatchingDataSource implements MatchingDataSource {
   async run(activityId: string): Promise<MatcherRunResult> {

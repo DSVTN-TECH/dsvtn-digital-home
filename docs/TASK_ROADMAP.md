@@ -30,4 +30,4 @@ Historical task specs may include superseded MVP/Bearer/no-Redis assumptions. Do
 
 TASK-061..065 deploy tasks. Do not implement until full local product passes PostgreSQL + Redis + backend + frontend + Swagger + role smoke gates.
 
-Full source: `../docs/20-sprints/PROGRESS_BOARD.md`.
+Full source: `../docs/13-sprints/PROGRESS_BOARD.md`.

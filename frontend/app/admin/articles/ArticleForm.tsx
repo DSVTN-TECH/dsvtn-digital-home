@@ -4,14 +4,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { FormField } from '@/components/ui/form-field'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton, SkeletonText } from '@/components/ui/skeleton'
 import { MarkdownView } from '@/components/shared/MarkdownView'
 import {
   getArticlesDataSource,
   type Article,
   type ArticleFormInput,
   type ArticleStatus,
-} from '@/lib/datasource/articles'
+} from '@/lib/datasource'
 
 const statuses: { value: ArticleStatus; label: string }[] = [
   { value: 'DRAFT', label: 'Bản nháp' },
@@ -147,111 +151,146 @@ export function ArticleForm({ articleId }: ArticleFormProps) {
   }
 
   if (loading) {
-    return <p className="text-muted-foreground">Đang tải bài viết...</p>
+    return (
+      <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]" role="status" aria-live="polite">
+        <Card variant="bento" className="p-5">
+          <Skeleton className="h-9 w-2/3" rounded="sm" />
+          <Skeleton className="mt-5 h-64 w-full" />
+        </Card>
+        <Card variant="bento" className="p-5">
+          <Skeleton className="h-5 w-1/2" rounded="sm" />
+          <SkeletonText className="mt-4" lines={4} />
+        </Card>
+      </div>
+    )
   }
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-      <div className="space-y-5 rounded-md border bg-card p-5">
-        <div className="space-y-2">
-          <Label htmlFor="title">Tiêu đề *</Label>
-          <Input
-            id="title"
-            value={form.title}
-            onChange={(event) => updateForm({ title: event.target.value })}
-            maxLength={200}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="content">Nội dung markdown *</Label>
-          <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Công cụ markdown">
-            {snippets.map((snippet) => (
-              <Button
-                key={snippet.label}
-                type="button"
-                variant="outline"
-                size="sm"
-                title={snippet.title}
-                aria-label={snippet.title}
-                onClick={() => insertSnippet(snippet)}
-              >
-                {snippet.label}
-              </Button>
-            ))}
+      <Card variant="bento" className="p-0">
+        <CardHeader className="flex-row items-start justify-between gap-4 border-b border-border">
+          <div>
+            <CardTitle>{articleId ? 'Chỉnh sửa bài viết' : 'Soạn bài viết mới'}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Sử dụng Markdown an toàn. Preview cập nhật theo thời gian thực.
+            </p>
           </div>
-          <textarea
-            id="content"
-            ref={textareaRef}
-            value={form.content}
-            onChange={(event) => updateForm({ content: event.target.value })}
-            className="min-h-80 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            maxLength={50000}
-          />
-        </div>
-
-        {error && (
-          <div
-            className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {error}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={saving || !dirty}>
-            {saving ? 'Đang lưu...' : 'Lưu bài viết'}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => router.push('/admin/articles')}>
-            Huỷ
-          </Button>
           {dirty ? (
-            <span className="text-xs text-muted-foreground" role="status">
+            <Badge tone="warning" role="status">
               Có thay đổi chưa lưu
-            </span>
+            </Badge>
+          ) : (
+            <Badge tone="neutral">Đã đồng bộ</Badge>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <FormField label="Tiêu đề" htmlFor="title" required>
+            <Input
+              id="title"
+              value={form.title}
+              onChange={(event) => updateForm({ title: event.target.value })}
+              maxLength={200}
+              placeholder="Tiêu đề ngắn gọn, hấp dẫn"
+            />
+          </FormField>
+
+          <FormField
+            label="Nội dung Markdown"
+            htmlFor="content"
+            required
+            help="Hỗ trợ tiêu đề, danh sách, link và in đậm. Tối đa 50.000 ký tự."
+          >
+            <div className="flex flex-wrap gap-1" role="toolbar" aria-label="Công cụ markdown">
+              {snippets.map((snippet) => (
+                <Button
+                  key={snippet.label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  title={snippet.title}
+                  aria-label={snippet.title}
+                  onClick={() => insertSnippet(snippet)}
+                >
+                  {snippet.label}
+                </Button>
+              ))}
+            </div>
+            <textarea
+              id="content"
+              ref={textareaRef}
+              value={form.content}
+              onChange={(event) => updateForm({ content: event.target.value })}
+              className="mt-2 min-h-80 w-full rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm font-mono leading-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+              maxLength={50000}
+            />
+          </FormField>
+
+          {error ? (
+            <div
+              className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+              role="alert"
+            >
+              {error}
+            </div>
           ) : null}
-        </div>
-      </div>
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-5">
+            <Button type="submit" disabled={saving || !dirty}>
+              {saving ? 'Đang lưu...' : 'Lưu bài viết'}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => router.push('/admin/articles')}>
+              Huỷ
+            </Button>
+            <span className="ml-auto text-xs font-semibold text-muted-foreground">
+              {wordCount} từ
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
       <aside className="space-y-5">
-        <div className="space-y-4 rounded-md border bg-card p-5">
-          <p className="text-sm font-medium">Thông tin bài viết</p>
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug</Label>
-            <Input
-              id="slug"
-              value={form.slug ?? ''}
-              onChange={(event) => updateForm({ slug: event.target.value })}
-              placeholder="Tự sinh từ tiêu đề nếu để trống"
-              maxLength={220}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="status">Trạng thái</Label>
-            <select
-              id="status"
-              value={form.status}
-              onChange={(event) => updateForm({ status: event.target.value as ArticleStatus })}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              {statuses.map((status) => (
-                <option key={status.value} value={status.value}>
-                  {status.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <p className="text-xs text-muted-foreground">{wordCount} từ</p>
-        </div>
+        <Card variant="bento" className="p-0">
+          <CardHeader>
+            <CardTitle className="text-base">Thông tin xuất bản</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField label="Slug" htmlFor="slug" help="Để trống để tự sinh từ tiêu đề.">
+              <Input
+                id="slug"
+                value={form.slug ?? ''}
+                onChange={(event) => updateForm({ slug: event.target.value })}
+                placeholder="vd: ngay-hoi-tinh-nguyen-2026"
+                maxLength={220}
+              />
+            </FormField>
+            <FormField label="Trạng thái" htmlFor="status">
+              <Select
+                id="status"
+                value={form.status}
+                onChange={(event) => updateForm({ status: event.target.value as ArticleStatus })}
+              >
+                {statuses.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-md border bg-background p-5">
-          <p className="text-sm font-medium text-muted-foreground">Xem trước (đã làm sạch)</p>
-          <h1 className="mt-3 text-2xl font-semibold">{form.title || 'Tiêu đề bài viết'}</h1>
-          <div className="mt-4 border-t pt-2">
-            <MarkdownView content={form.content || 'Nội dung markdown sẽ hiển thị tại đây.'} />
-          </div>
-        </div>
+        <Card variant="bento" className="p-0">
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="text-base">Xem trước</CardTitle>
+            <Badge tone="success">Đã làm sạch</Badge>
+          </CardHeader>
+          <CardContent>
+            <h1 className="text-h3">{form.title || 'Tiêu đề bài viết'}</h1>
+            <div className="mt-4 border-t border-border pt-4">
+              <MarkdownView content={form.content || 'Nội dung markdown sẽ hiển thị tại đây.'} />
+            </div>
+          </CardContent>
+        </Card>
       </aside>
     </form>
   )

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import type { CartItem } from '@/components/forms/OrderForm'
-import type { Product } from '@/lib/datasource/shop'
+import type { Product } from '@/lib/datasource'
 
 const CART_KEY = 'dsvtn_shop_cart'
 

@@ -1,13 +1,16 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Image from 'next/image'
+import { Minus, Plus, Trash2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { getShopDataSource, type CreateOrderResult, type Product } from '@/lib/datasource/shop'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { FormField } from '@/components/ui/form-field'
+import { getShopDataSource, type CreateOrderResult, type Product } from '@/lib/datasource'
 
 export interface CartItem {
   product: Product
@@ -35,6 +38,10 @@ interface OrderFormProps {
   onUpdateQuantity: (productId: string, quantity: number) => void
   onRemove: (productId: string) => void
   onSuccess: (result: CreateOrderResult) => void
+}
+
+function formatPrice(cents: number): string {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cents)
 }
 
 export function OrderForm({ cart, onUpdateQuantity, onRemove, onSuccess }: OrderFormProps) {
@@ -74,130 +81,226 @@ export function OrderForm({ cart, onUpdateQuantity, onRemove, onSuccess }: Order
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-      <section className="rounded-md border bg-card p-4">
-        <h3 className="text-base font-semibold">Giỏ hàng</h3>
-        {cart.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Chưa có sản phẩm nào. Quay lại danh sách để thêm vào giỏ.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {cart.map((item) => (
-              <li
-                key={item.product.id}
-                className="flex flex-wrap items-center justify-between gap-3 border-b pb-3 last:border-b-0 last:pb-0"
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_420px]"
+      noValidate
+    >
+      <div className="space-y-6">
+        <Card variant="bento" className="p-0">
+          <CardHeader>
+            <CardTitle>Thông tin giao hàng</CardTitle>
+            <CardDescription>
+              Đội logistics dùng thông tin này để xác nhận và giao sản phẩm.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Họ và tên"
+              htmlFor="customerName"
+              required
+              error={errors.customerName?.message}
+            >
+              <Input
+                id="customerName"
+                autoComplete="name"
+                invalid={!!errors.customerName}
+                {...register('customerName')}
+              />
+            </FormField>
+            <FormField
+              label="Số điện thoại"
+              htmlFor="customerPhone"
+              required
+              error={errors.customerPhone?.message}
+            >
+              <Input
+                id="customerPhone"
+                inputMode="tel"
+                autoComplete="tel"
+                invalid={!!errors.customerPhone}
+                {...register('customerPhone')}
+              />
+            </FormField>
+            <FormField
+              label="Địa chỉ nhận hàng"
+              htmlFor="customerAddress"
+              required
+              error={errors.customerAddress?.message}
+              className="sm:col-span-2"
+            >
+              <Input
+                id="customerAddress"
+                autoComplete="street-address"
+                invalid={!!errors.customerAddress}
+                {...register('customerAddress')}
+              />
+            </FormField>
+          </CardContent>
+        </Card>
+
+        <Card variant="bento" className="p-0">
+          <CardHeader>
+            <CardTitle>Minh chứng thanh toán</CardTitle>
+            <CardDescription>Chuyển khoản và dán link ảnh biên lai công khai.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 lg:grid-cols-[220px_1fr]">
+            <div className="rounded-3xl border border-border bg-muted p-4 text-center">
+              <div
+                className="mx-auto grid h-32 w-32 grid-cols-5 gap-1 rounded-2xl bg-white p-3 shadow-sm"
+                aria-hidden="true"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{item.product.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatPrice(item.product.priceCents)} / sản phẩm
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor={`qty-${item.product.id}`} className="sr-only">
-                    Số lượng
-                  </Label>
-                  <Input
-                    id={`qty-${item.product.id}`}
-                    type="number"
-                    min={1}
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const next = Number.parseInt(e.target.value, 10)
-                      onUpdateQuantity(item.product.id, Number.isFinite(next) ? next : 1)
-                    }}
-                    className="w-20"
+                {Array.from({ length: 25 }).map((_, index) => (
+                  <span
+                    key={index}
+                    className={
+                      index % 3 === 0 || index % 7 === 0
+                        ? 'rounded-sm bg-foreground'
+                        : 'rounded-sm bg-muted'
+                    }
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemove(item.product.id)}
+                ))}
+              </div>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Vietcombank
+              </p>
+              <p className="mt-1 text-sm font-extrabold text-foreground">1234 5678 9012</p>
+              <p className="text-xs text-muted-foreground">ĐSVTN Shop</p>
+            </div>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-[color:var(--info)]/30 bg-[color:var(--info)]/10 p-4 text-sm text-foreground">
+                <p className="font-semibold">Hướng dẫn</p>
+                <p className="mt-1 leading-6 text-muted-foreground">
+                  Nội dung chuyển khoản: họ tên + số điện thoại. Sau khi upload biên lai lên Drive
+                  hoặc Imgur, dán link <strong>https</strong> vào ô bên dưới.
+                </p>
+              </div>
+              <FormField
+                label="Link ảnh xác nhận chuyển khoản"
+                htmlFor="paymentProofUrl"
+                required
+                help="Liên kết phải bắt đầu bằng https:// và xem được công khai."
+                error={errors.paymentProofUrl?.message}
+              >
+                <Input
+                  id="paymentProofUrl"
+                  placeholder="https://..."
+                  invalid={!!errors.paymentProofUrl}
+                  {...register('paymentProofUrl')}
+                />
+              </FormField>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
+        <Card variant="bento" className="p-0">
+          <CardHeader>
+            <CardTitle>Đơn hàng ({cart.length} sản phẩm)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {cart.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Chưa có sản phẩm nào. Quay lại shop để thêm vào giỏ.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {cart.map((item) => (
+                  <li
+                    key={item.product.id}
+                    className="flex items-start justify-between gap-3 border-b border-border pb-3 last:border-0 last:pb-0"
                   >
-                    Xoá
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm font-semibold">
-          <span>Tổng cộng</span>
-          <span>{formatPrice(totalCents)}</span>
-        </div>
-      </section>
+                    <div className="flex min-w-0 gap-3">
+                      <div className="h-14 w-14 flex-shrink-0 rounded-2xl bg-muted p-2">
+                        <Image
+                          src={item.product.imageUrl ?? '/assets/products/polo.svg'}
+                          alt=""
+                          width={80}
+                          height={80}
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {item.product.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatPrice(item.product.priceCents)}
+                        </p>
+                        <div className="mt-2 inline-flex items-center rounded-lg border border-border">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label="Giảm"
+                            disabled={item.quantity <= 1}
+                            onClick={() =>
+                              onUpdateQuantity(item.product.id, Math.max(1, item.quantity - 1))
+                            }
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </Button>
+                          <span className="w-8 text-center text-sm font-semibold">
+                            {item.quantity}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            aria-label="Tăng"
+                            onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="text-sm font-semibold text-foreground">
+                        {formatPrice(item.product.priceCents * item.quantity)}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Xoá ${item.product.name}`}
+                        onClick={() => onRemove(item.product.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex items-center justify-between border-t border-border pt-3 text-base font-bold">
+              <span>Tổng cộng</span>
+              <span className="text-primary">{formatPrice(totalCents)}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-      <section className="space-y-4 rounded-md border bg-card p-4">
-        <h3 className="text-base font-semibold">Thông tin giao hàng</h3>
+        {serverError ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+          >
+            {serverError}
+          </div>
+        ) : null}
 
-        <div className="space-y-2">
-          <Label htmlFor="customerName">Họ tên *</Label>
-          <Input
-            id="customerName"
-            {...register('customerName')}
-            aria-invalid={!!errors.customerName}
-          />
-          {errors.customerName && (
-            <p className="text-sm text-destructive">{errors.customerName.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="customerPhone">Số điện thoại *</Label>
-          <Input
-            id="customerPhone"
-            {...register('customerPhone')}
-            aria-invalid={!!errors.customerPhone}
-          />
-          {errors.customerPhone && (
-            <p className="text-sm text-destructive">{errors.customerPhone.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="customerAddress">Địa chỉ *</Label>
-          <Input
-            id="customerAddress"
-            {...register('customerAddress')}
-            aria-invalid={!!errors.customerAddress}
-          />
-          {errors.customerAddress && (
-            <p className="text-sm text-destructive">{errors.customerAddress.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="paymentProofUrl">Link ảnh xác nhận chuyển khoản (https) *</Label>
-          <Input
-            id="paymentProofUrl"
-            placeholder="https://..."
-            {...register('paymentProofUrl')}
-            aria-invalid={!!errors.paymentProofUrl}
-          />
-          {errors.paymentProofUrl && (
-            <p className="text-sm text-destructive">{errors.paymentProofUrl.message}</p>
-          )}
-        </div>
-      </section>
-
-      {serverError && (
-        <div
-          className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          role="alert"
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={submitting || cart.length === 0}
         >
-          {serverError}
-        </div>
-      )}
-
-      <Button type="submit" className="w-full" disabled={submitting || cart.length === 0}>
-        {submitting ? 'Đang gửi...' : 'Đặt hàng'}
-      </Button>
+          {submitting ? 'Đang gửi...' : 'Xác nhận đặt hàng'}
+        </Button>
+      </div>
     </form>
   )
-}
-
-function formatPrice(cents: number): string {
-  const vnd = Math.round(cents / 100)
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(vnd)
 }

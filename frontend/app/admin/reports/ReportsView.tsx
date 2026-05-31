@@ -3,24 +3,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { FormField } from '@/components/ui/form-field'
+import { Select } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { StatCard } from '@/components/ui/stat-card'
+import { Pagination } from '@/components/ui/pagination'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared/PageStates'
-import { getReportsDataSource, isOrderRow } from '@/lib/datasource/reports'
+import { getReportsDataSource, isOrderRow } from '@/lib/datasource'
 import type {
   ActivityReportRow,
   OrderReportRow,
   ReportDataset,
   ReportRow,
   ReportsOverview,
-} from '@/lib/datasource/reports'
+} from '@/lib/datasource'
 
 const PAGE_SIZE = 20
 
@@ -46,6 +52,22 @@ const statusOptions: Record<ReportDataset, { value: string; label: string }[]> =
     { value: 'DELIVERED', label: 'Đã giao' },
     { value: 'CANCELLED', label: 'Đã hủy' },
   ],
+}
+
+function reportStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    DRAFT: 'Nháp',
+    OPEN: 'Đang mở',
+    CLOSED: 'Đã đóng',
+    MATCHED: 'Đã phân công',
+    COMPLETED: 'Hoàn thành',
+    PENDING_PAYMENT_REVIEW: 'Chờ xác nhận',
+    CONFIRMED: 'Đã xác nhận',
+    REJECTED: 'Từ chối',
+    DELIVERED: 'Đã giao',
+    CANCELLED: 'Đã hủy',
+  }
+  return labels[status] ?? status
 }
 
 function formatCurrency(cents: number): string {
@@ -175,100 +197,126 @@ export function ReportsView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">Báo cáo & thống kê</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Báo cáo tổng hợp</h1>
-      </div>
-
-      <form
-        onSubmit={applyFilters}
-        className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5"
-      >
-        <div className="space-y-1">
-          <Label htmlFor="report-dataset">Bộ dữ liệu</Label>
-          <select
-            id="report-dataset"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            value={filters.dataset}
-            onChange={(event) =>
-              setFilters((prev) => ({
-                ...prev,
-                dataset: event.target.value as ReportDataset,
-                status: '',
-              }))
-            }
-          >
-            {datasetOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="report-status">Trạng thái</Label>
-          <select
-            id="report-status"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            value={filters.status}
-            onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
-          >
-            {statusOptions[filters.dataset].map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="report-from">Từ ngày</Label>
-          <Input
-            id="report-from"
-            type="date"
-            value={filters.from}
-            onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <Label htmlFor="report-to">Đến ngày</Label>
-          <Input
-            id="report-to"
-            type="date"
-            value={filters.to}
-            onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))}
-          />
-        </div>
-
-        <div className="flex items-end gap-2">
-          <Button type="submit">Lọc</Button>
-          <Button type="button" variant="outline" onClick={resetFilters}>
-            Đặt lại
-          </Button>
-        </div>
-      </form>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-          {overview ? `${overview.pagination.total} bản ghi` : 'Đang tải...'}
-          {overview?.summary.totalCents !== undefined
-            ? ` · Tổng tiền: ${formatCurrency(overview.summary.totalCents)}`
-            : ''}
-          {overview?.summary.totalRegistrations !== undefined
-            ? ` · Lượt đăng ký: ${overview.summary.totalRegistrations}`
-            : ''}
+      <section className="rounded-[var(--svtn-radius-bento)] bg-gradient-to-br from-primary to-[color:var(--navy)] p-5 text-primary-foreground shadow-[var(--svtn-shadow-md)]">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary-foreground/70">
+          Báo cáo & thống kê
         </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          disabled={!overview || overview.items.length === 0}
-        >
-          Xuất CSV
-        </Button>
+        <h1 className="mt-2 text-h1">Báo cáo tổng hợp</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-primary-foreground/80">
+          Theo dõi hoạt động, đơn hàng và xuất CSV cho đối soát nội bộ.
+        </p>
+      </section>
+
+      <Card variant="bento" className="p-0">
+        <CardHeader>
+          <CardTitle>Bộ lọc báo cáo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={applyFilters} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <FormField label="Bộ dữ liệu" htmlFor="report-dataset">
+              <Select
+                id="report-dataset"
+                value={filters.dataset}
+                onChange={(event) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    dataset: event.target.value as ReportDataset,
+                    status: '',
+                  }))
+                }
+              >
+                {datasetOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="Trạng thái" htmlFor="report-status">
+              <Select
+                id="report-status"
+                value={filters.status}
+                onChange={(event) =>
+                  setFilters((prev) => ({ ...prev, status: event.target.value }))
+                }
+              >
+                {statusOptions[filters.dataset].map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <FormField label="Từ ngày" htmlFor="report-from">
+              <Input
+                id="report-from"
+                type="date"
+                value={filters.from}
+                onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))}
+              />
+            </FormField>
+
+            <FormField label="Đến ngày" htmlFor="report-to">
+              <Input
+                id="report-to"
+                type="date"
+                value={filters.to}
+                onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))}
+              />
+            </FormField>
+
+            <div className="flex items-end gap-2">
+              <Button type="submit">Lọc</Button>
+              <Button type="button" variant="outline" onClick={resetFilters}>
+                Đặt lại
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" role="status" aria-live="polite">
+        <StatCard
+          label="Bản ghi"
+          value={overview?.pagination.total ?? '—'}
+          icon="table_rows"
+          tone="primary"
+        />
+        <StatCard
+          label="Tổng tiền"
+          value={
+            overview?.summary.totalCents !== undefined
+              ? formatCurrency(overview.summary.totalCents)
+              : '—'
+          }
+          icon="payments"
+          tone="success"
+        />
+        <StatCard
+          label="Lượt đăng ký"
+          value={overview?.summary.totalRegistrations ?? '—'}
+          icon="how_to_reg"
+          tone="info"
+        />
+        <Card variant="bento" className="flex flex-col justify-between gap-4 p-5">
+          <div>
+            <p className="text-sm font-semibold text-muted-foreground">Xuất dữ liệu</p>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              CSV theo bộ lọc đang áp dụng.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={!overview || overview.items.length === 0}
+          >
+            Xuất CSV
+          </Button>
+        </Card>
       </div>
 
       {status === 'loading' ? (
@@ -282,79 +330,72 @@ export function ReportsView() {
         />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {applied.dataset === 'orders' ? (
-                    <>
-                      <TableHead>Khách hàng</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead className="text-right">Số lượng</TableHead>
-                      <TableHead className="text-right">Tổng tiền</TableHead>
-                      <TableHead>Ngày tạo</TableHead>
-                    </>
-                  ) : (
-                    <>
-                      <TableHead>Hoạt động</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead className="text-right">Nhiệm vụ</TableHead>
-                      <TableHead className="text-right">Đăng ký</TableHead>
-                      <TableHead className="text-right">Phân công</TableHead>
-                      <TableHead>Bắt đầu</TableHead>
-                    </>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {overview.items.map((row: ReportRow) =>
-                  isOrderRow(row) ? (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">{row.customerName}</TableCell>
-                      <TableCell>{row.status}</TableCell>
-                      <TableCell className="text-right">{row.itemCount}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(row.totalCents)}</TableCell>
-                      <TableCell>{formatDate(row.createdAt)}</TableCell>
-                    </TableRow>
-                  ) : (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-medium">{row.title}</TableCell>
-                      <TableCell>{row.status}</TableCell>
-                      <TableCell className="text-right">{row.taskCount}</TableCell>
-                      <TableCell className="text-right">{row.registrationCount}</TableCell>
-                      <TableCell className="text-right">{row.assignmentCount}</TableCell>
-                      <TableCell>{formatDate(row.startTime)}</TableCell>
-                    </TableRow>
-                  ),
+          <Table>
+            <TableCaption>
+              {applied.dataset === 'orders'
+                ? 'Bảng đơn hàng theo bộ lọc đang áp dụng.'
+                : 'Bảng hoạt động theo bộ lọc đang áp dụng.'}
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                {applied.dataset === 'orders' ? (
+                  <>
+                    <TableHead>Khách hàng</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="text-right">Số lượng</TableHead>
+                    <TableHead className="text-right">Tổng tiền</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead>Hoạt động</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="text-right">Nhiệm vụ</TableHead>
+                    <TableHead className="text-right">Đăng ký</TableHead>
+                    <TableHead className="text-right">Phân công</TableHead>
+                    <TableHead>Bắt đầu</TableHead>
+                  </>
                 )}
-              </TableBody>
-            </Table>
-          </div>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {overview.items.map((row: ReportRow) =>
+                isOrderRow(row) ? (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{row.customerName}</TableCell>
+                    <TableCell>
+                      <Badge tone="neutral">{reportStatusLabel(row.status)}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{row.itemCount}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(row.totalCents)}</TableCell>
+                    <TableCell>{formatDate(row.createdAt)}</TableCell>
+                  </TableRow>
+                ) : (
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{row.title}</TableCell>
+                    <TableCell>
+                      <Badge tone="neutral">{reportStatusLabel(row.status)}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{row.taskCount}</TableCell>
+                    <TableCell className="text-right">{row.registrationCount}</TableCell>
+                    <TableCell className="text-right">{row.assignmentCount}</TableCell>
+                    <TableCell>{formatDate(row.startTime)}</TableCell>
+                  </TableRow>
+                ),
+              )}
+            </TableBody>
+          </Table>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
               Trang {overview.pagination.page} / {Math.max(1, overview.pagination.totalPages)}
             </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              >
-                Trước
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page >= overview.pagination.totalPages}
-                onClick={() => setPage((prev) => prev + 1)}
-              >
-                Sau
-              </Button>
-            </div>
+            <Pagination
+              page={overview.pagination.page}
+              pageCount={Math.max(1, overview.pagination.totalPages)}
+              onPageChange={setPage}
+              ariaLabel="Phân trang báo cáo"
+            />
           </div>
         </>
       )}

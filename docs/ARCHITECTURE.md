@@ -33,4 +33,4 @@ httpOnly cookies only. No localStorage JWT target.
 
 - `../docs/03-architecture/REQUEST_LIFECYCLE.md`
 - `../docs/03-architecture/REDIS_SCALE_PLAN.md`
-- `../docs/10-security/AUTH.md`
+- `../docs/09-security/AUTH.md`

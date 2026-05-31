@@ -1,19 +1,23 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Select } from '@/components/ui/select'
+import { Pagination } from '@/components/ui/pagination'
+import { StatCard } from '@/components/ui/stat-card'
+import { EmptyState, ErrorState, LoadingState } from '@/components/shared/PageStates'
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { EmptyState, ErrorState, LoadingState } from '@/components/shared/PageStates'
-import { getCampaignsDataSource } from '@/lib/datasource/campaigns'
-import type { OrderStatus, PaginatedTransactions } from '@/lib/datasource/campaigns'
+import { getCampaignsDataSource } from '@/lib/datasource'
+import type { CampaignOrderStatus as OrderStatus, PaginatedTransactions } from '@/lib/datasource'
 
 const PAGE_SIZE = 20
 
@@ -32,6 +36,14 @@ const statusLabels: Record<OrderStatus, string> = {
   REJECTED: 'Từ chối',
   DELIVERED: 'Đã giao',
   CANCELLED: 'Đã hủy',
+}
+
+const statusTone: Record<OrderStatus, 'success' | 'warning' | 'danger' | 'info'> = {
+  PENDING_PAYMENT_REVIEW: 'warning',
+  CONFIRMED: 'info',
+  REJECTED: 'danger',
+  DELIVERED: 'success',
+  CANCELLED: 'danger',
 }
 
 function formatCurrency(cents: number): string {
@@ -74,32 +86,37 @@ export function FundraisingHistory() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground">Gây quỹ</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Lịch sử giao dịch gây quỹ</h1>
-      </div>
-
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <Label htmlFor="tx-status">Trạng thái</Label>
-          <select
-            id="tx-status"
-            className="h-9 w-48 rounded-md border border-input bg-background px-3 text-sm"
-            value={statusFilter}
-            onChange={(event) => changeStatus(event.target.value as '' | OrderStatus)}
-          >
-            {statusOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        {data ? (
-          <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
-            {data.pagination.total} giao dịch
+      <div className="svtn-section">
+        <div>
+          <p className="svtn-eyebrow">Gây quỹ</p>
+          <h1 className="text-h1">Lịch sử giao dịch gây quỹ</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Theo dõi toàn bộ giao dịch shop theo trạng thái.
           </p>
-        ) : null}
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="grid gap-1 text-sm">
+            <span className="text-label text-foreground">Trạng thái</span>
+            <Select
+              selectSize="sm"
+              className="w-48"
+              value={statusFilter}
+              onChange={(e) => changeStatus(e.target.value as '' | OrderStatus)}
+              aria-label="Lọc theo trạng thái"
+            >
+              {statusOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </label>
+          {data ? (
+            <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+              {data.pagination.total} giao dịch
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {status === 'loading' ? (
@@ -113,57 +130,79 @@ export function FundraisingHistory() {
         />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Mã đơn</TableHead>
-                  <TableHead>Khách hàng</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="text-right">Số lượng</TableHead>
-                  <TableHead className="text-right">Số tiền</TableHead>
-                  <TableHead>Ngày tạo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.items.map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="font-medium">#{tx.id.slice(-6).toUpperCase()}</TableCell>
-                    <TableCell>{tx.customerName}</TableCell>
-                    <TableCell>{statusLabels[tx.status]}</TableCell>
-                    <TableCell className="text-right">{tx.itemCount}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(tx.totalCents)}</TableCell>
-                    <TableCell>{formatDate(tx.createdAt)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Quỹ đã nhận (trang này)"
+              value={formatCurrency(
+                data.items
+                  .filter((tx) => tx.status === 'CONFIRMED' || tx.status === 'DELIVERED')
+                  .reduce((sum, tx) => sum + tx.totalCents, 0),
+              )}
+              icon="payments"
+              tone="success"
+              description="Tổng đơn đã xác nhận/đã giao"
+            />
+            <StatCard
+              label="Giao dịch (trang này)"
+              value={data.items.length}
+              icon="receipt_long"
+              tone="info"
+            />
+            <StatCard
+              label="Tổng giao dịch"
+              value={data.pagination.total}
+              icon="database"
+              tone="primary"
+            />
           </div>
+
+          <Card variant="bento" className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableCaption>Lịch sử giao dịch gây quỹ theo bộ lọc.</TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Mã đơn</TableHead>
+                    <TableHead>Khách hàng</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="text-right">Số lượng</TableHead>
+                    <TableHead className="text-right">Số tiền</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.items.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="font-semibold text-foreground">
+                        #{tx.id.slice(-6).toUpperCase()}
+                      </TableCell>
+                      <TableCell>{tx.customerName}</TableCell>
+                      <TableCell>
+                        <Badge tone={statusTone[tx.status]}>{statusLabels[tx.status]}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{tx.itemCount}</TableCell>
+                      <TableCell className="text-right font-semibold text-primary">
+                        {formatCurrency(tx.totalCents)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(tx.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
 
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               Trang {data.pagination.page} / {Math.max(1, data.pagination.totalPages)}
             </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              >
-                Trước
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page >= data.pagination.totalPages}
-                onClick={() => setPage((prev) => prev + 1)}
-              >
-                Sau
-              </Button>
-            </div>
+            <Pagination
+              page={page}
+              pageCount={Math.max(1, data.pagination.totalPages)}
+              onPageChange={setPage}
+            />
           </div>
         </>
       )}

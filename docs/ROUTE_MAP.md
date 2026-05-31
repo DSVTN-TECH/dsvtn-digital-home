@@ -16,4 +16,4 @@
 
 `/logistic`, `/logistic/orders`.
 
-Full mapping: `../docs/06-frontend/ROUTING.md` and `../docs/15-ux/UI_PROTOTYPES.md`.
+Full mapping: `../docs/06-frontend/ROUTING.md` and `../docs/06-frontend/UI_PROTOTYPES.md`.

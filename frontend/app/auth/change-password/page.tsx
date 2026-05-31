@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { apiFetch, ApiError } from '@/lib/api'
+import { ApiError } from '@/lib/api'
+import { getAuthDataSource, MockAuthError } from '@/lib/datasource'
 import { getRoleHomePath, useAuth } from '@/hooks/useAuth'
-import type { LoginResponse } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,17 +52,16 @@ export default function ChangePasswordPage() {
   async function onSubmit(values: ChangePasswordForm) {
     setServerError(null)
     try {
-      const res = await apiFetch<LoginResponse>('/auth/change-password', {
-        method: 'POST',
-        body: JSON.stringify({
-          currentPassword: values.currentPassword,
-          newPassword: values.newPassword,
-        }),
-      })
-      router.replace(getRoleHomePath(res.user.role))
+      const changedUser = await getAuthDataSource().changePassword(
+        values.currentPassword,
+        values.newPassword,
+      )
+      router.replace(getRoleHomePath(changedUser.role))
     } catch (err) {
       const message =
-        err instanceof ApiError ? err.message : 'Đổi mật khẩu thất bại. Vui lòng thử lại.'
+        err instanceof ApiError || err instanceof MockAuthError
+          ? err.message
+          : 'Đổi mật khẩu thất bại. Vui lòng thử lại.'
       setServerError(message)
     }
   }
@@ -76,10 +75,13 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-8">
-      <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-sm">
-        <div className="mb-6 space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Đổi mật khẩu</h1>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <div className="w-full max-w-sm svtn-bento p-6">
+        <div className="mb-6 space-y-2 text-center">
+          <p className="text-sm font-semibold uppercase tracking-wide text-primary">
+            Bảo mật tài khoản
+          </p>
+          <h1 className="text-3xl font-extrabold tracking-tight">Đổi mật khẩu</h1>
           <p className="text-sm text-muted-foreground">Cập nhật mật khẩu trước khi tiếp tục</p>
         </div>
 
@@ -134,7 +136,7 @@ export default function ChangePasswordPage() {
 
           {serverError && (
             <div
-              className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              className="rounded-2xl border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
               role="alert"
             >
               {serverError}

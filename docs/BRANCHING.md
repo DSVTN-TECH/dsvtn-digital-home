@@ -1,6 +1,6 @@
 # Branching / Git Workflow
 
-> Full guide: `../docs/20-sprints/BRANCHING.md`
+> Full guide: `../docs/13-sprints/BRANCHING.md`
 
 ## Current workspace rule
 

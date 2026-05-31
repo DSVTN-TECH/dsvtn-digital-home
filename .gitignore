@@ -50,3 +50,11 @@ prisma/migrations/*.db
 *.tsbuildinfo
 next-env.d.ts
 .tmp
+
+# Playwright / E2E artifacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/screenshots/
+frontend/design-screenshots/
+frontend/.runtime/
+backend/.runtime/

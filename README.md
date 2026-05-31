@@ -39,14 +39,14 @@
 
 ĐSVTN Digital Home is a full-stack internal management platform built for **Đội Sinh viên Tình nguyện** (ĐSVTN). It replaces manual spreadsheet workflows with a centralised web application covering:
 
-| Module | Description |
-|---|---|
-| **Volunteer Recruitment** | Public application form with admin review workflow |
-| **Activity Management** | Create activities, define tasks with slot capacities |
-| **Task Matcher** | Deterministic greedy algorithm matching volunteers to tasks based on preference scores |
-| **Fundraising Shop** | Public product catalogue + order management for logistic staff |
-| **User Provisioning** | Admin-only internal account creation (no self-signup) |
-| **Articles / CMS** | Lightweight content management for public-facing news |
+| Module                    | Description                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------- |
+| **Volunteer Recruitment** | Public application form with admin review workflow                                     |
+| **Activity Management**   | Create activities, define tasks with slot capacities                                   |
+| **Task Matcher**          | Deterministic greedy algorithm matching volunteers to tasks based on preference scores |
+| **Fundraising Shop**      | Public product catalogue + order management for logistic staff                         |
+| **User Provisioning**     | Admin-only internal account creation (no self-signup)                                  |
+| **Articles / CMS**        | Lightweight content management for public-facing news                                  |
 
 ### Key Design Decisions
 
@@ -103,53 +103,53 @@ GitHub → CI (Actions) → main branch merge
 
 ### Core
 
-| Layer | Technology | Version |
-|---|---|---|
-| Runtime | Node.js | `24.16.0` |
-| Language | TypeScript | `5.8` |
-| Frontend | Next.js (App Router) | `15` |
-| UI | Tailwind CSS + shadcn/ui | `v4` |
-| Backend | NestJS | `11` |
-| ORM | Prisma | `6` |
-| Database | PostgreSQL | `17` |
+| Layer    | Technology               | Version   |
+| -------- | ------------------------ | --------- |
+| Runtime  | Node.js                  | `24.16.0` |
+| Language | TypeScript               | `5.8`     |
+| Frontend | Next.js (App Router)     | `15`      |
+| UI       | Tailwind CSS + shadcn/ui | `v4`      |
+| Backend  | NestJS                   | `11`      |
+| ORM      | Prisma                   | `6`       |
+| Database | PostgreSQL               | `17`      |
 
 ### Backend Packages
 
-| Package | Purpose |
-|---|---|
-| `@nestjs/jwt` + `passport-jwt` | JWT auth |
-| `@nestjs/config` + `zod` | Env validation on startup |
-| `class-validator` + `class-transformer` | DTO input validation |
-| `bcrypt` | Password hashing |
-| `@nestjs/swagger` | Auto-generated API docs |
+| Package                                 | Purpose                   |
+| --------------------------------------- | ------------------------- |
+| `@nestjs/jwt` + `passport-jwt`          | JWT auth                  |
+| `@nestjs/config` + `zod`                | Env validation on startup |
+| `class-validator` + `class-transformer` | DTO input validation      |
+| `bcrypt`                                | Password hashing          |
+| `@nestjs/swagger`                       | Auto-generated API docs   |
 
 ### Frontend Packages
 
-| Package | Purpose |
-|---|---|
+| Package                   | Purpose                        |
+| ------------------------- | ------------------------------ |
 | `react-hook-form` + `zod` | Form state + client validation |
-| `lucide-react` | Icon library |
+| `lucide-react`            | Icon library                   |
 
 ### Dev Tooling
 
-| Tool | Purpose |
-|---|---|
-| ESLint 9 (flat config) | Linting |
-| Prettier 3 | Code formatting |
-| Husky 9 + lint-staged | Pre-commit hooks |
-| Docker Compose | Local PostgreSQL |
-| GitHub Actions | CI/CD pipeline |
+| Tool                   | Purpose          |
+| ---------------------- | ---------------- |
+| ESLint 9 (flat config) | Linting          |
+| Prettier 3             | Code formatting  |
+| Husky 9 + lint-staged  | Pre-commit hooks |
+| Docker Compose         | Local PostgreSQL |
+| GitHub Actions         | CI/CD pipeline   |
 
 ---
 
 ## Prerequisites
 
-| Tool | Version | Install |
-|---|---|---|
-| Node.js | `24.16.0` | [nvm](https://github.com/nvm-sh/nvm) |
-| npm | `10+` | Bundled with Node |
-| Docker + Docker Compose | Latest | [Docker Desktop](https://docs.docker.com/desktop) |
-| Git | `2.30+` | [git-scm.com](https://git-scm.com) |
+| Tool                    | Version   | Install                                           |
+| ----------------------- | --------- | ------------------------------------------------- |
+| Node.js                 | `24.16.0` | [nvm](https://github.com/nvm-sh/nvm)              |
+| npm                     | `10+`     | Bundled with Node                                 |
+| Docker + Docker Compose | Latest    | [Docker Desktop](https://docs.docker.com/desktop) |
+| Git                     | `2.30+`   | [git-scm.com](https://git-scm.com)                |
 
 > **Windows users:** Use [nvm-windows](https://github.com/coreybutler/nvm-windows) or WSL2.
 
@@ -228,11 +228,11 @@ cd frontend && npm run dev
 
 ### Verify
 
-| URL | Expected |
-|---|---|
-| `http://localhost:3000` | Landing page |
+| URL                                | Expected             |
+| ---------------------------------- | -------------------- |
+| `http://localhost:3000`            | Landing page         |
 | `http://localhost:3001/api/health` | `{ "status": "ok" }` |
-| `http://localhost:3001/api/docs` | Swagger UI |
+| `http://localhost:3001/api/docs`   | Swagger UI           |
 
 **Default admin credentials** (seed data — change immediately):
 
@@ -247,24 +247,24 @@ Password: changeme
 
 ### Backend (`backend/.env`)
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
-| `JWT_SECRET` | ✅ | — | JWT signing secret, **min 32 chars** |
-| `JWT_EXPIRES_IN` | | `7d` | Token expiry duration |
-| `PORT` | | `3001` | HTTP port |
-| `NODE_ENV` | | `development` | Runtime environment |
-| `ALLOWED_ORIGINS` | | `http://localhost:3000` | Comma-separated CORS origins |
-| `EMAIL_API_KEY` | | *(empty)* | Email provider API key — app works without it |
-| `EMAIL_FROM` | | *(empty)* | Sender address for transactional email |
+| Variable          | Required | Default                 | Description                                   |
+| ----------------- | -------- | ----------------------- | --------------------------------------------- |
+| `DATABASE_URL`    | ✅       | —                       | PostgreSQL connection string                  |
+| `JWT_SECRET`      | ✅       | —                       | JWT signing secret, **min 32 chars**          |
+| `JWT_EXPIRES_IN`  |          | `7d`                    | Token expiry duration                         |
+| `PORT`            |          | `3001`                  | HTTP port                                     |
+| `NODE_ENV`        |          | `development`           | Runtime environment                           |
+| `ALLOWED_ORIGINS` |          | `http://localhost:3000` | Comma-separated CORS origins                  |
+| `EMAIL_API_KEY`   |          | _(empty)_               | Email provider API key — app works without it |
+| `EMAIL_FROM`      |          | _(empty)_               | Sender address for transactional email        |
 
 > The app performs **fail-fast validation** on startup using Zod. A missing or invalid `JWT_SECRET` or `DATABASE_URL` will prevent the process from starting — you will see a clear error message.
 
 ### Frontend (`frontend/.env.local`)
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:3001/api` | Backend API base URL |
+| Variable              | Required | Default                     | Description          |
+| --------------------- | -------- | --------------------------- | -------------------- |
+| `NEXT_PUBLIC_API_URL` | ✅       | `http://localhost:3001/api` | Backend API base URL |
 
 ---
 
@@ -338,12 +338,12 @@ Types: feat | fix | chore | docs | refactor | test | ci
 
 ### Branch Strategy
 
-| Branch | Purpose | CI |
-|---|---|---|
-| `main` | Production-ready, protected | CI + CD |
-| `develop` | Integration branch | CI only |
-| `feature/*` | Feature work | CI on PR |
-| `fix/*` | Bug fixes | CI on PR |
+| Branch      | Purpose                     | CI       |
+| ----------- | --------------------------- | -------- |
+| `main`      | Production-ready, protected | CI + CD  |
+| `develop`   | Integration branch          | CI only  |
+| `feature/*` | Feature work                | CI on PR |
+| `fix/*`     | Bug fixes                   | CI on PR |
 
 ---
 
@@ -433,18 +433,18 @@ http://localhost:3001/api/docs
 
 ### Quick Reference
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/auth/login` | — | Authenticate and receive JWT |
-| `GET` | `/api/health` | — | Service health check |
-| `GET` | `/api/admin/users` | Admin | List internal users |
-| `POST` | `/api/admin/users` | Admin | Create user + temp password |
-| `POST` | `/api/public/volunteer-applications` | — | Submit volunteer application |
-| `GET` | `/api/admin/volunteer-applications` | Admin | Review applications |
-| `POST` | `/api/admin/activities` | Admin | Create activity |
-| `POST` | `/api/admin/activities/:id/matcher/run` | Admin | Run greedy matcher |
-| `GET` | `/api/public/products` | — | List active products |
-| `POST` | `/api/public/orders` | — | Place an order |
+| Method | Endpoint                                | Auth  | Description                  |
+| ------ | --------------------------------------- | ----- | ---------------------------- |
+| `POST` | `/api/auth/login`                       | —     | Authenticate and receive JWT |
+| `GET`  | `/api/health`                           | —     | Service health check         |
+| `GET`  | `/api/admin/users`                      | Admin | List internal users          |
+| `POST` | `/api/admin/users`                      | Admin | Create user + temp password  |
+| `POST` | `/api/public/volunteer-applications`    | —     | Submit volunteer application |
+| `GET`  | `/api/admin/volunteer-applications`     | Admin | Review applications          |
+| `POST` | `/api/admin/activities`                 | Admin | Create activity              |
+| `POST` | `/api/admin/activities/:id/matcher/run` | Admin | Run greedy matcher           |
+| `GET`  | `/api/public/products`                  | —     | List active products         |
+| `POST` | `/api/public/orders`                    | —     | Place an order               |
 
 Full contract: [`docs/07-api/API_CONTRACT.md`](../docs/07-api/API_CONTRACT.md)
 
@@ -505,7 +505,7 @@ All tests run automatically on every push and pull request via GitHub Actions. T
 
 ## Deployment
 
-### Combo A — Vercel (Frontend) + Railway (Backend) *(Recommended)*
+### Combo A — Vercel (Frontend) + Railway (Backend) _(Recommended)_
 
 **Backend → Railway**
 
@@ -543,11 +543,11 @@ This is an internal project. External contributions are not accepted at this tim
 
 ### For Internal Developers
 
-1. **Read the task docs first** — every feature has a corresponding `TASK-xxx.md` in `docs/19-tasks/`
+1. **Read the task docs first** — every feature has a corresponding `TASK-xxx.md` in `docs/12-tasks/`
 2. **One task per branch** — branch off `develop`, name it `feature/TASK-xxx-short-description`
 3. **Tests required** — no PR merges without passing unit tests for the changed module
 4. **No skipping CI** — do not use `--no-verify` except in genuine emergencies
-5. **Docs update** — update `docs/25-sessions/CURRENT_STATE.md` after completing a task
+5. **Docs update** — update `docs/17-sessions/CURRENT_STATE.md` after completing a task
 
 ### Code Style
 

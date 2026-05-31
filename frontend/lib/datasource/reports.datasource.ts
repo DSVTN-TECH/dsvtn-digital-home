@@ -1,6 +1,3 @@
-import { apiFetch } from '@/lib/api'
-import { MockReportsDataSource } from '@/lib/mock/reports'
-
 export interface ReportsDashboardKpis {
   totalUsers: number
   activeUsers: number
@@ -67,17 +64,8 @@ export type ReportRow = ActivityReportRow | OrderReportRow
 export interface ReportsOverview {
   generatedAt: string
   dataset: ReportDataset
-  filters: {
-    status?: string
-    from?: string
-    to?: string
-  }
-  pagination: {
-    page: number
-    pageSize: number
-    total: number
-    totalPages: number
-  }
+  filters: { status?: string; from?: string; to?: string }
+  pagination: { page: number; pageSize: number; total: number; totalPages: number }
   summary: {
     rowCount: number
     totalCents?: number
@@ -94,35 +82,4 @@ export interface ReportsDataSource {
 
 export function isOrderRow(row: ReportRow): row is OrderReportRow {
   return (row as OrderReportRow).customerName !== undefined
-}
-
-function buildOverviewQuery(filters: ReportsOverviewFilters): string {
-  const params = new URLSearchParams()
-  params.set('dataset', filters.dataset)
-  params.set('page', String(filters.page))
-  params.set('pageSize', String(filters.pageSize))
-  if (filters.status) params.set('status', filters.status)
-  if (filters.from) params.set('from', filters.from)
-  if (filters.to) params.set('to', filters.to)
-  return params.toString()
-}
-
-export class ApiReportsDataSource implements ReportsDataSource {
-  async getDashboard(): Promise<ReportsDashboard> {
-    return apiFetch<ReportsDashboard>('/admin/reports/dashboard')
-  }
-
-  async getOverview(filters: ReportsOverviewFilters): Promise<ReportsOverview> {
-    return apiFetch<ReportsOverview>(`/admin/reports/overview?${buildOverviewQuery(filters)}`)
-  }
-}
-
-let reportsDataSource: ReportsDataSource | null = null
-
-export function getReportsDataSource(): ReportsDataSource {
-  if (!reportsDataSource) {
-    const mode = (process.env.NEXT_PUBLIC_DATA_SOURCE as 'mock' | 'api') ?? 'mock'
-    reportsDataSource = mode === 'api' ? new ApiReportsDataSource() : new MockReportsDataSource()
-  }
-  return reportsDataSource
 }

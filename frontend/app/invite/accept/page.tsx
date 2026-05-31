@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getInvitesDataSource } from '@/lib/datasource/invites'
+import { getInvitesDataSource } from '@/lib/datasource'
 
 const acceptSchema = z.object({
   fullName: z.string().min(2, 'Họ tên tối thiểu 2 ký tự'),
@@ -91,10 +91,11 @@ function AcceptInviteForm() {
 
 export default function InviteAcceptPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-sm">
-        <div className="mb-6 space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Chấp nhận lời mời</h1>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <div className="w-full max-w-sm svtn-bento p-6">
+        <div className="mb-6 space-y-2 text-center">
+          <p className="text-sm font-semibold uppercase tracking-wide text-primary">ĐSVTN Invite</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">Chấp nhận lời mời</h1>
           <p className="text-sm text-muted-foreground">
             Hoàn tất thông tin để kích hoạt tài khoản ĐSVTN của bạn.
           </p>

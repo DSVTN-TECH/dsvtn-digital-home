@@ -1,5 +1,6 @@
 import { AlertTriangle, Inbox, Loader2, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Skeleton, SkeletonText } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 interface StateShellProps {
@@ -13,11 +14,11 @@ interface StateShellProps {
 
 function StateShell({ icon, title, description, action, className, role }: StateShellProps) {
   return (
-    <div
+    <section
       role={role}
       aria-live={role === 'alert' ? 'assertive' : 'polite'}
       className={cn(
-        'flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-10 text-center',
+        'flex flex-col items-center justify-center gap-3 rounded-[var(--svtn-radius-bento)] border border-dashed bg-card p-10 text-center shadow-sm',
         className,
       )}
     >
@@ -25,11 +26,11 @@ function StateShell({ icon, title, description, action, className, role }: State
         {icon}
       </div>
       <div className="space-y-1">
-        <p className="text-sm font-medium">{title}</p>
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {action}
-    </div>
+    </section>
   )
 }
 
@@ -50,6 +51,27 @@ export function LoadingState({
       description={description}
       className={className}
     />
+  )
+}
+
+export function LoadingSkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn('grid gap-4 sm:grid-cols-2 lg:grid-cols-3', className)}
+    >
+      {Array.from({ length: 3 }).map((_, idx) => (
+        <div
+          key={idx}
+          className="rounded-[var(--svtn-radius-bento)] border border-border bg-card p-6 shadow-sm"
+        >
+          <Skeleton className="h-10 w-10" rounded="lg" />
+          <Skeleton className="mt-5 h-5 w-2/3" rounded="sm" />
+          <SkeletonText className="mt-4" lines={3} />
+        </div>
+      ))}
+    </div>
   )
 }
 

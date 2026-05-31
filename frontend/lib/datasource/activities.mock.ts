@@ -7,8 +7,35 @@ import type {
 } from './activities.datasource'
 import { mockActivities } from '@/lib/mock/activities'
 
+const primaryActivityId = '00000000-0000-0000-0000-000000000001'
+
 let store = [...mockActivities]
-let taskStore: Task[] = []
+let taskStore: Task[] = [
+  {
+    id: 'mock-task-1',
+    activityId: primaryActivityId,
+    name: 'Hậu cần sân khấu',
+    description: 'Chuẩn bị vật tư, bảng tên và không gian đón tiếp.',
+    slotCount: 5,
+    priority: 2,
+  },
+  {
+    id: 'mock-task-2',
+    activityId: primaryActivityId,
+    name: 'Check-in TNV',
+    description: 'Điểm danh, hướng dẫn đội hình và ghi nhận hoàn thành.',
+    slotCount: 4,
+    priority: 1,
+  },
+  {
+    id: 'mock-task-3',
+    activityId: primaryActivityId,
+    name: 'Truyền thông hiện trường',
+    description: 'Chụp ảnh, cập nhật recap và tổng hợp tư liệu sau hoạt động.',
+    slotCount: 3,
+    priority: 0,
+  },
+]
 
 export class MockActivitiesDataSource implements ActivitiesDataSource {
   async list(): Promise<Activity[]> {

@@ -1,28 +1,25 @@
 'use client'
 
-import { RoleShell, type ShellNavItem } from '@/components/shared/RoleShell'
+import { MemberShell, type ShellNavItem } from '@/components/shared/MemberShell'
+import { RoleGate } from '@/components/shared/RoleGate'
 
 const navItems: ShellNavItem[] = [
-  { href: '/member/feed', label: 'Bảng tin' },
-  { href: '/member/activities', label: 'Hoạt động' },
-  { href: '/member/assignments', label: 'Phân công' },
-  { href: '/member/notifications', label: 'Thông báo' },
-  { href: '/member/profile', label: 'Hồ sơ' },
-  { href: '/member/streak', label: 'Điểm & xếp hạng' },
-  { href: '/member/recap', label: 'Recap' },
-  { href: '/member/impact', label: 'Tác động' },
+  { href: '/member/feed', icon: 'dynamic_feed', label: 'Bảng tin' },
+  { href: '/member/activities', icon: 'volunteer_activism', label: 'Hoạt động' },
+  { href: '/member/assignments', icon: 'assignment_ind', label: 'Phân công' },
+  { href: '/member/notifications', icon: 'notifications', label: 'Thông báo' },
+  { href: '/member/profile', icon: 'person', label: 'Hồ sơ' },
+  { href: '/member/streak', icon: 'leaderboard', label: 'Điểm & xếp hạng' },
+  { href: '/member/recap', icon: 'photo_library', label: 'Recap' },
+  { href: '/member/impact', icon: 'favorite', label: 'Tác động' },
 ]
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   return (
-    <RoleShell
-      title="ĐSVTN Member"
-      navItems={navItems}
-      allow={['MEMBER', 'ADMIN']}
-      showBell
-      notificationsHref="/member/notifications"
-    >
-      {children}
-    </RoleShell>
+    <RoleGate allow={['MEMBER', 'ADMIN']}>
+      <MemberShell navItems={navItems} notificationsHref="/member/notifications">
+        {children}
+      </MemberShell>
+    </RoleGate>
   )
 }

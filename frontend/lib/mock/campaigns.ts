@@ -1,12 +1,9 @@
 import type {
   CampaignWithProgress,
-  CampaignsDataSource,
   FundraisingTransaction,
-  PaginatedTransactions,
-  TransactionFilters,
-} from '@/lib/datasource/campaigns'
+} from '@/lib/datasource/campaigns.datasource'
 
-const mockCampaigns: CampaignWithProgress[] = [
+export const mockCampaigns: CampaignWithProgress[] = [
   {
     id: 'mock-campaign-1',
     title: 'Áo polo gây quỹ Mùa Hè Xanh 2026',
@@ -31,7 +28,7 @@ const mockCampaigns: CampaignWithProgress[] = [
   },
 ]
 
-const mockTransactions: FundraisingTransaction[] = [
+export const mockTransactions: FundraisingTransaction[] = [
   {
     id: 'mock-tx-1',
     customerName: 'Nguyễn An',
@@ -60,27 +57,3 @@ const mockTransactions: FundraisingTransaction[] = [
     createdAt: '2026-06-07T10:15:00.000Z',
   },
 ]
-
-export class MockCampaignsDataSource implements CampaignsDataSource {
-  async listPublic(): Promise<CampaignWithProgress[]> {
-    return Promise.resolve(mockCampaigns.filter((campaign) => campaign.status === 'ACTIVE'))
-  }
-
-  async listTransactions(filters: TransactionFilters): Promise<PaginatedTransactions> {
-    let items = [...mockTransactions]
-    if (filters.status) items = items.filter((tx) => tx.status === filters.status)
-    if (filters.campaignId) items = items.filter((tx) => tx.campaignId === filters.campaignId)
-    const total = items.length
-    const offset = (filters.page - 1) * filters.pageSize
-    const paged = items.slice(offset, offset + filters.pageSize)
-    return Promise.resolve({
-      items: paged,
-      pagination: {
-        page: filters.page,
-        pageSize: filters.pageSize,
-        total,
-        totalPages: Math.ceil(total / filters.pageSize),
-      },
-    })
-  }
-}

@@ -1,3 +1,5 @@
+import { mockLogout } from './mock/auth'
+
 const CSRF_COOKIE = 'dsvtn_csrf'
 
 export function getCsrfToken(): string | null {
@@ -10,6 +12,11 @@ export function getCsrfToken(): string | null {
 }
 
 export async function logout(): Promise<void> {
+  if (process.env.NEXT_PUBLIC_DATA_SOURCE !== 'api') {
+    mockLogout()
+    return
+  }
+
   const csrfToken = getCsrfToken()
   await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api'}/auth/logout`, {
     method: 'POST',

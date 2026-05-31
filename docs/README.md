@@ -31,10 +31,10 @@ Full local product before deploy:
 
 ## Current Status
 
-- H07 Cookie auth is `REVIEW_PENDING`: local uncommitted work exists and must be reviewed before official DONE.
-- Next implementation after H07 review/commit: H08 Redis local infrastructure.
-- TASK-037 feature work remains paused until H08-H11 are complete.
-- TASK-061..065 deploy tasks are placeholders only.
+- Local product feature scope is implemented through SPRINT-06.
+- Backend verification is green locally: unit serial, e2e serial, and live API smoke.
+- PostgreSQL + Redis are required for localhost development.
+- TASK-061..065 deploy tasks are placeholders only until local review is accepted.
 
 ## Branch And Task Rules
 

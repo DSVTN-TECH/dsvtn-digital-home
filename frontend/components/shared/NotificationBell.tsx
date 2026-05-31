@@ -2,19 +2,19 @@
 
 import Link from 'next/link'
 import { Bell } from 'lucide-react'
+import { useUnreadCount } from '@/hooks/useUnreadCount'
 import { cn } from '@/lib/utils'
 
 interface NotificationBellProps {
   href?: string
-  unreadCount?: number
   className?: string
 }
 
 export function NotificationBell({
   href = '/member/notifications',
-  unreadCount = 0,
   className,
 }: NotificationBellProps) {
+  const unreadCount = useUnreadCount()
   const hasUnread = unreadCount > 0
   const label = hasUnread
     ? `Thông báo, ${unreadCount} chưa đọc`
@@ -25,7 +25,7 @@ export function NotificationBell({
       href={href}
       aria-label={label}
       className={cn(
-        'relative inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+        'relative inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function NotificationBell({
       {hasUnread ? (
         <span
           aria-hidden="true"
-          className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-4 text-destructive-foreground"
+          className="absolute right-1 top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-[18px] text-destructive-foreground"
         >
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
