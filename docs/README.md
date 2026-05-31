@@ -1,45 +1,37 @@
-# ĐSVTN Digital Home — In-Repo Team Docs
+# ĐSVTN Digital Home — Engineering Docs
 
-These docs are the quick-start layer for engineers inside the code repo. The canonical source of truth remains the workspace root `../docs/`.
+In-repo engineering documentation for the ĐSVTN Digital Home monorepo
+(NestJS backend + Next.js frontend). These docs are self-contained: a new
+engineer can set up, run, and verify the product locally using only this
+folder.
 
-## Current Product Target
+## Read in this order
 
-Full local product before deploy:
+| Step | File                                                 | Purpose                                                                  |
+| ---- | ---------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1    | [`OVERVIEW.md`](OVERVIEW.md)                         | What the product is: modules, roles, core business rules.                |
+| 2    | [`LOCAL_SETUP.md`](LOCAL_SETUP.md)                   | Install, configure env, start Postgres + Redis, migrate, seed, run apps. |
+| 3    | [`RUN_AND_USE.md`](RUN_AND_USE.md)                   | URLs, demo accounts, per-role smoke flows.                               |
+| 4    | [`DATABASE_AND_SWAGGER.md`](DATABASE_AND_SWAGGER.md) | Inspect the DB with Prisma Studio; use Swagger with cookie + CSRF auth.  |
+| 5    | [`TESTING.md`](TESTING.md)                           | Local quality gates to run before marking work complete.                 |
 
-- 28 canonical `ui-design/svtn_v2` screens functional.
-- Supporting pages for feed, impact, invite accept, change password, gallery/campaign admin.
-- PostgreSQL + Redis local runtime.
-- httpOnly cookie auth + CSRF.
-- Swagger usable for local API inspection.
-- Backend request handling with validation, RBAC/ownership, errors, tests, Redis scale notes.
-- Strong UX states on every page.
-- Deploy/CD/staging/production tasks remain placeholders.
+## Reference
 
-## Read First
+| File                                             | Purpose                                                               |
+| ------------------------------------------------ | --------------------------------------------------------------------- |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md)             | Runtime topology, layering, auth model, Redis usage.                  |
+| [`BACKEND_STRUCTURE.md`](BACKEND_STRUCTURE.md)   | Module list, repository pattern, DTO/validation, error contract.      |
+| [`FRONTEND_STRUCTURE.md`](FRONTEND_STRUCTURE.md) | Route layout, data-source pattern, error/loading states, conventions. |
+| [`API_CONTRACT.md`](API_CONTRACT.md)             | Endpoint groups by domain, auth and role required.                    |
+| [`ROUTE_MAP.md`](ROUTE_MAP.md)                   | UI routes by role with auth and redirect rules.                       |
+| [`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md)       | Tables grouped by owning module, data conventions.                    |
+| [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)       | Symptom → fix for common local issues.                                |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md)             | Branching, commits, and required pre-commit gates.                    |
 
-| File                      | Purpose                                              |
-| ------------------------- | ---------------------------------------------------- |
-| `LOCAL_SETUP.md`          | Install, env, DB/Redis, migrate, seed, start apps.   |
-| `RUN_AND_USE.md`          | URLs, demo accounts, role flows, manual smoke usage. |
-| `DATABASE_AND_SWAGGER.md` | Prisma Studio, DB checks, Swagger cookie/CSRF usage. |
-| `TASK_ROADMAP.md`         | Current implementation order and blocked tasks.      |
-| `TESTING.md`              | Required local checks before marking work complete.  |
-| `ARCHITECTURE.md`         | Runtime and module overview.                         |
-| `ROUTE_MAP.md`            | UI route map.                                        |
-| `API_CONTRACT.md`         | Endpoint/auth summary.                               |
-| `DATABASE_SCHEMA.md`      | Table/module ownership summary.                      |
+## Conventions used across these docs
 
-## Current Status
-
-- Local product feature scope is implemented through SPRINT-06.
-- Backend verification is green locally: unit serial, e2e serial, and live API smoke.
-- PostgreSQL + Redis are required for localhost development.
-- TASK-061..065 deploy tasks are placeholders only until local review is accepted.
-
-## Branch And Task Rules
-
-- Work one task at a time.
-- Read the task spec and linked docs before code.
-- Do not mark DONE until code, tests, docs, and board/session state agree.
-- Do not push from the agent; user owns remote pushes.
-- Never commit `.env`, secrets, tokens, or credentials.
+- All commands run from the repository root (`dsvtn-digital-home/`) unless stated otherwise.
+- PostgreSQL is the durable source of truth; Redis is ephemeral infrastructure only.
+- Auth uses httpOnly cookies plus a CSRF token — never localStorage tokens.
+- Money is always stored as integer cents; IDs are UUID v4.
+- `password_hash` is never returned in any API response.

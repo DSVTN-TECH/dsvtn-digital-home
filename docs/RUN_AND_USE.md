@@ -1,64 +1,103 @@
-# Run And Use Local Product
+# Run and Use the Local Product
+
+Once [`LOCAL_SETUP.md`](LOCAL_SETUP.md) is complete, use this guide to log in
+and exercise the product end to end. The flows below assume the seed has been
+applied (`npx --prefix backend prisma db seed`).
 
 ## URLs
 
-| Surface       | URL                                  |
-| ------------- | ------------------------------------ |
-| Frontend      | `http://localhost:3000`              |
-| Backend API   | `http://localhost:3001/api`          |
-| Swagger       | `http://localhost:3001/api/docs`     |
-| Prisma Studio | `http://localhost:5555` when started |
+| Surface       | URL                                    |
+| ------------- | -------------------------------------- |
+| Frontend      | `http://localhost:3000`                |
+| Backend API   | `http://localhost:3001/api`            |
+| Health check  | `http://localhost:3001/api/health`     |
+| Swagger       | `http://localhost:3001/api/docs`       |
+| Prisma Studio | `http://localhost:5555` (when started) |
 
-## Demo Accounts
+## Demo accounts
 
-Seed data must document active credentials in root `docs/08-data/SEED_DATA.md`.
+All passwords below are local-only fixtures. Never reuse them in staging or
+production.
 
-Current expected admin:
+| Email               | Password    | Role       | Notes                          |
+| ------------------- | ----------- | ---------- | ------------------------------ |
+| `admin@dsvtn.vn`    | `changeme`  | `ADMIN`    | `must_change_password = false` |
+| `member1@dsvtn.vn`  | `member1`   | `MEMBER`   | Active member.                 |
+| `member2@dsvtn.vn`  | `member2`   | `MEMBER`   | Active member.                 |
+| `logistic@dsvtn.vn` | `logistic1` | `LOGISTIC` | Order processing only.         |
 
-- Email: `admin@dsvtn.vn`
-- Password: `changeme`
-- Role: `ADMIN`
-- `must_change_password=false`
+Accounts created by an admin (or via invite) start with `must_change_password = true`
+and are forced through `/auth/change-password` before any business route is
+reachable.
 
-Temporary-password users created by Admin must be forced through `/auth/change-password`.
+## Auth behavior
 
-## Public Smoke
+The browser receives three cookies on login:
 
-1. Open `/`.
-2. Open `/volunteer`, submit a valid volunteer application.
-3. Open `/news` and one news detail.
-4. Open `/shop`, add product to cart, open cart panel, go to checkout.
-5. Submit checkout with HTTPS payment proof URL.
-6. Open `/fundraising` once campaigns are implemented.
+- `dsvtn_access` — short-lived access token (httpOnly).
+- `dsvtn_refresh` — refresh token (httpOnly).
+- `dsvtn_csrf` — readable CSRF token used as the `X-CSRF-Token` header on
+  protected mutations.
 
-## Admin Smoke
+All API calls from the frontend use `credentials: 'include'`. Unsafe protected
+requests (`POST`/`PUT`/`PATCH`/`DELETE`) require an `X-CSRF-Token` header that
+matches the `dsvtn_csrf` cookie.
 
-1. Login as admin.
-2. Review volunteer application list and detail.
-3. Create internal member/logistic user.
-4. Create activity and tasks.
-5. Open matcher page after member registration and run matcher.
-6. Manage articles, products, orders, reports, campaigns, gallery, and accounts as tasks become implemented.
+Expected redirects:
 
-## Member Smoke
+| Situation                                   | Behavior                                             |
+| ------------------------------------------- | ---------------------------------------------------- |
+| Unauthenticated user hits a protected route | Redirect to `/login`.                                |
+| Authenticated user with wrong role          | Access-denied page or redirect away.                 |
+| `must_change_password = true`               | Redirect to `/auth/change-password` until completed. |
+| Disabled user with valid cookie             | Server returns 401; frontend redirects to `/login`.  |
 
-1. Login as member.
-2. If temporary password, complete `/auth/change-password`.
-3. Open `/member/activities` and activity detail.
-4. Submit preferences for an OPEN activity.
-5. Open assignments, notifications, profile, streak, recap, feed, and impact pages as tasks become implemented.
+## Public smoke flow
 
-## Logistic Smoke
+1. Open `/`. The landing page renders without auth.
+2. Open `/volunteer` and submit a valid application.
+3. Open `/news` and a news detail page.
+4. Open `/shop`, add a product to cart, open the cart drawer, proceed to checkout.
+5. Submit checkout with a valid HTTPS payment-proof URL.
+6. Open `/fundraising` and confirm campaign progress renders.
 
-1. Login as logistic.
+## Admin smoke flow
+
+1. Log in as `admin@dsvtn.vn`.
+2. Open `/admin/volunteer-applications`, review the list and a detail page.
+3. Open `/admin/users` (or `/admin/accounts`) and create an internal member.
+4. Open `/admin/activities`, create an activity, then add tasks.
+5. Have member accounts register and submit preferences (see member flow).
+6. Open `/admin/activities/[id]/matcher` and run the matcher.
+7. Manage articles (`/admin/articles`), products (`/admin/products`), orders
+   (`/admin/orders`), reports (`/admin/reports`), campaigns
+   (`/admin/campaigns`), gallery (`/admin/gallery`), and accounts
+   (`/admin/accounts`).
+
+## Member smoke flow
+
+1. Log in as `member1@dsvtn.vn`.
+2. If prompted, complete `/auth/change-password`.
+3. Open `/member/activities` and an activity detail.
+4. Submit per-task preference scores for an OPEN activity.
+5. After the matcher runs, open `/member/assignments`.
+6. Open `/member/notifications`, `/member/profile`, `/member/streak`,
+   `/member/recap`, `/member/feed`, `/member/impact`.
+
+## Logistic smoke flow
+
+1. Log in as `logistic@dsvtn.vn`.
 2. Open `/logistic/orders`.
-3. Confirm/reject/deliver orders according to allowed transitions.
-4. Confirm logistic cannot access admin-only activity/user/report actions.
+3. Confirm, reject, or deliver orders following the allowed transitions.
+4. Confirm logistic users cannot reach admin-only activity, user, or report
+   pages (the routes redirect or 403).
 
-## Expected Auth Behavior
+## Sanity checks
 
-- Browser requests use cookies with `credentials: include`.
-- Unsafe protected requests include `X-CSRF-Token`.
-- Missing auth redirects to `/login`.
-- Wrong role shows/redirects to an access-denied path.
-- `mustChangePassword` redirects to `/auth/change-password`.
+- Login response body never contains `password_hash`.
+- `GET /api/auth/me` returns the current user without `password_hash`.
+- `POST` without a CSRF token returns 403 (`CSRF_INVALID`).
+- Logout clears all three cookies.
+- Disabled users (set via Prisma Studio) cannot use a previously valid cookie.
+
+If any of these fail, see [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
